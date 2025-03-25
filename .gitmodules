@@ -1,0 +1,9 @@
+[submodule "loxc"]
+	path = loxc
+	url = ./loxc
+[submodule "lox-vm"]
+	path = lox-vm
+	url = ./lox-vm
+[submodule "lox"]
+	path = lox
+	url = ./lox

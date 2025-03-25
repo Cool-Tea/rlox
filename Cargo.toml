@@ -1,0 +1,3 @@
+[workspace]
+members = ["lox","loxc", "lox-vm"]
+resolver = "3"
