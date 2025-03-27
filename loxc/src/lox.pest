@@ -1,0 +1,155 @@
+// syntax
+
+program = { SOI ~ declaration* ~ EOI }
+
+declaration = { classDecl | funDecl | varDecl | stmt }
+
+classDecl = { CLASS ~ IDENT ~ (INHERIT ~ IDENT)? ~ L_BRACE ~ func* ~ R_BRACE }
+
+funDecl = { FUN ~ func }
+
+varDecl = { VAR ~ IDENT ~ (ASSIGN ~ expr)? ~ SEMI_COLON }
+
+stmt = { exprStmt | forStmt | ifStmt | printStmt | retStmt | whileStmt | block }
+
+exprStmt = { expr ~ SEMI_COLON }
+
+forStmt = {
+    FOR ~ L_PAREN ~ (varDecl | exprStmt | SEMI_COLON) ~ expr? ~ SEMI_COLON ~ expr? ~ R_PAREN ~ stmt
+}
+
+ifStmt = {
+    IF ~ L_PAREN ~ expr ~ R_PAREN ~ stmt ~ (ELSE ~ stmt)?
+}
+
+printStmt = { PRINT ~ expr ~ SEMI_COLON }
+
+retStmt = { RETURN ~ expr? ~ SEMI_COLON }
+
+whileStmt = {
+    WHILE ~ L_PAREN ~ expr ~ R_PAREN ~ stmt
+}
+
+block = { L_BRACE ~ declaration* ~ R_BRACE }
+
+expr = { call ~ ASSIGN ~ expr | IDENT ~ ASSIGN ~ expr | logic_or }
+
+logic_or = { logic_and ~ (OR ~ logic_and)* }
+
+logic_and = { equality ~ (AND ~ equality)* }
+
+equality = { comparison ~ ((NE | EQ) ~ comparison)* }
+
+comparison = { term ~ ((GT | GE | LT | LE) ~ term)* }
+
+term = { factor ~ ((ADD | SUB) ~ factor)* }
+
+factor = { unary ~ ((MUL | DIV) ~ unary)* }
+
+unary = { (NOT | MINUS) ~ unary | call }
+
+call = { primary ~ (L_PAREN ~ args? ~ R_PAREN | DOT ~ IDENT)* }
+
+primary = {
+    TRUE
+  | FALSE
+  | NIL
+  | THIS
+  | NUM
+  | STRING
+  | IDENT
+  | L_PAREN ~ expr ~ R_PAREN
+  | SUPER ~ DOT ~ IDENT
+}
+
+func = { IDENT ~ L_PAREN ~ params? ~ R_PAREN ~ block }
+
+params = { IDENT ~ (COMMA ~ IDENT)* }
+
+args = { expr ~ (COMMA ~ expr)* }
+
+// lex rule
+
+NUM = { ASCII_DIGIT+ ~ (DOT ~ ASCII_DIGIT*)? }
+
+STRING = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+IDENT = { ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+
+CLASS = { "class" }
+
+INHERIT = { "<" }
+
+L_BRACE = { "{" }
+
+R_BRACE = { "}" }
+
+L_PAREN = { "(" }
+
+R_PAREN = { ")" }
+
+DOT = { "." }
+
+FUN = { "fun" }
+
+VAR = { "var" }
+
+ASSIGN = { "=" }
+
+SEMI_COLON = { ";" }
+
+FOR = { "for" }
+
+IF = { "if" }
+
+ELSE = { "else" }
+
+PRINT = { "print" }
+
+RETURN = { "return" }
+
+WHILE = { "while" }
+
+OR = { "or" }
+
+AND = { "and" }
+
+EQ = { "==" }
+
+NE = { "!=" }
+
+GT = { ">" }
+
+GE = { ">=" }
+
+LT = { "<" }
+
+LE = { "<=" }
+
+ADD = { "+" }
+
+SUB = { "-" }
+
+MUL = { "*" }
+
+DIV = { "/" }
+
+NOT = { "!" }
+
+MINUS = { "-" }
+
+TRUE = { "true" }
+
+FALSE = { "false" }
+
+NIL = { "nil" }
+
+THIS = { "this" }
+
+SUPER = { "super" }
+
+COMMA = { "," }
+
+// skip white space
+
+WHITESPACE = _{ WHITE_SPACE }
