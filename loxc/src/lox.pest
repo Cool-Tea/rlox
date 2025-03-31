@@ -1,155 +1,155 @@
 // syntax
 
-program = { SOI ~ declaration* ~ EOI }
+Program = { SOI ~ Decl* ~ EOI }
 
-declaration = { classDecl | funDecl | varDecl | stmt }
+Decl = { ClassDecl | FunDecl | VarDecl | Stmt }
 
-classDecl = { CLASS ~ IDENT ~ (INHERIT ~ IDENT)? ~ L_BRACE ~ func* ~ R_BRACE }
+ClassDecl = { Class ~ Ident ~ (Inherit ~ Ident)? ~ LBrace ~ Func* ~ RBrace }
 
-funDecl = { FUN ~ func }
+FunDecl = { Fun ~ Func }
 
-varDecl = { VAR ~ IDENT ~ (ASSIGN ~ expr)? ~ SEMI_COLON }
+VarDecl = { Var ~ Ident ~ (Assign ~ Expr)? ~ SemiColon }
 
-stmt = { exprStmt | forStmt | ifStmt | printStmt | retStmt | whileStmt | block }
+Stmt = { ExprStmt | ForStmt | IfStmt | PrintStmt | RetStmt | WhileStmt | Block }
 
-exprStmt = { expr ~ SEMI_COLON }
+ExprStmt = { Expr ~ SemiColon }
 
-forStmt = {
-    FOR ~ L_PAREN ~ (varDecl | exprStmt | SEMI_COLON) ~ expr? ~ SEMI_COLON ~ expr? ~ R_PAREN ~ stmt
+ForStmt = {
+    For ~ LParen ~ (VarDecl | ExprStmt | SemiColon) ~ Expr? ~ SemiColon ~ Expr? ~ RParen ~ Stmt
 }
 
-ifStmt = {
-    IF ~ L_PAREN ~ expr ~ R_PAREN ~ stmt ~ (ELSE ~ stmt)?
+IfStmt = {
+    If ~ LParen ~ Expr ~ RParen ~ Stmt ~ (Else ~ Stmt)?
 }
 
-printStmt = { PRINT ~ expr ~ SEMI_COLON }
+PrintStmt = { Print ~ Expr ~ SemiColon }
 
-retStmt = { RETURN ~ expr? ~ SEMI_COLON }
+RetStmt = { Return ~ Expr? ~ SemiColon }
 
-whileStmt = {
-    WHILE ~ L_PAREN ~ expr ~ R_PAREN ~ stmt
+WhileStmt = {
+    While ~ LParen ~ Expr ~ RParen ~ Stmt
 }
 
-block = { L_BRACE ~ declaration* ~ R_BRACE }
+Block = { LBrace ~ Decl* ~ RBrace }
 
-expr = { call ~ ASSIGN ~ expr | IDENT ~ ASSIGN ~ expr | logic_or }
+Expr = { Call ~ Assign ~ Expr | Ident ~ Assign ~ Expr | LogicOr }
 
-logic_or = { logic_and ~ (OR ~ logic_and)* }
+LogicOr = { LogicAnd ~ (Or ~ LogicAnd)* }
 
-logic_and = { equality ~ (AND ~ equality)* }
+LogicAnd = { Equal ~ (And ~ Equal)* }
 
-equality = { comparison ~ ((NE | EQ) ~ comparison)* }
+Equal = { Comp ~ ((Ne | Eq) ~ Comp)* }
 
-comparison = { term ~ ((GT | GE | LT | LE) ~ term)* }
+Comp = { Term ~ ((Gt | Ge | Lt | Le) ~ Term)* }
 
-term = { factor ~ ((ADD | SUB) ~ factor)* }
+Term = { Factor ~ ((Add | Sub) ~ Factor)* }
 
-factor = { unary ~ ((MUL | DIV) ~ unary)* }
+Factor = { Unary ~ ((Mul | Div) ~ Unary)* }
 
-unary = { (NOT | MINUS) ~ unary | call }
+Unary = { (Not | Minus) ~ Unary | Call }
 
-call = { primary ~ (L_PAREN ~ args? ~ R_PAREN | DOT ~ IDENT)* }
+Call = { Primary ~ (LParen ~ Args? ~ RParen | Dot ~ Ident)* }
 
-primary = {
-    TRUE
-  | FALSE
-  | NIL
-  | THIS
-  | NUM
-  | STRING
-  | IDENT
-  | L_PAREN ~ expr ~ R_PAREN
-  | SUPER ~ DOT ~ IDENT
+Primary = {
+    True
+  | False
+  | Nil
+  | This
+  | Num
+  | String
+  | Ident
+  | LParen ~ Expr ~ RParen
+  | Super ~ Dot ~ Ident
 }
 
-func = { IDENT ~ L_PAREN ~ params? ~ R_PAREN ~ block }
+Func = { Ident ~ LParen ~ Params? ~ RParen ~ Block }
 
-params = { IDENT ~ (COMMA ~ IDENT)* }
+Params = { Ident ~ (Comma ~ Ident)* }
 
-args = { expr ~ (COMMA ~ expr)* }
+Args = { Expr ~ (Comma ~ Expr)* }
 
 // lex rule
 
-NUM = { ASCII_DIGIT+ ~ (DOT ~ ASCII_DIGIT*)? }
+Num = { ASCII_DIGIT+ ~ (Dot ~ ASCII_DIGIT*)? }
 
-STRING = { "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+String = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
-IDENT = { ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+Ident = { ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
 
-CLASS = { "class" }
+Class = { "class" }
 
-INHERIT = { "<" }
+Inherit = { "<" }
 
-L_BRACE = { "{" }
+LBrace = { "{" }
 
-R_BRACE = { "}" }
+RBrace = { "}" }
 
-L_PAREN = { "(" }
+LParen = { "(" }
 
-R_PAREN = { ")" }
+RParen = { ")" }
 
-DOT = { "." }
+Dot = { "." }
 
-FUN = { "fun" }
+Fun = { "fun" }
 
-VAR = { "var" }
+Var = { "var" }
 
-ASSIGN = { "=" }
+Assign = { "=" }
 
-SEMI_COLON = { ";" }
+SemiColon = { ";" }
 
-FOR = { "for" }
+For = { "for" }
 
-IF = { "if" }
+If = { "if" }
 
-ELSE = { "else" }
+Else = { "else" }
 
-PRINT = { "print" }
+Print = { "print" }
 
-RETURN = { "return" }
+Return = { "return" }
 
-WHILE = { "while" }
+While = { "while" }
 
-OR = { "or" }
+Or = { "or" }
 
-AND = { "and" }
+And = { "and" }
 
-EQ = { "==" }
+Eq = { "==" }
 
-NE = { "!=" }
+Ne = { "!=" }
 
-GT = { ">" }
+Gt = { ">" }
 
-GE = { ">=" }
+Ge = { ">=" }
 
-LT = { "<" }
+Lt = { "<" }
 
-LE = { "<=" }
+Le = { "<=" }
 
-ADD = { "+" }
+Add = { "+" }
 
-SUB = { "-" }
+Sub = { "-" }
 
-MUL = { "*" }
+Mul = { "*" }
 
-DIV = { "/" }
+Div = { "/" }
 
-NOT = { "!" }
+Not = { "!" }
 
-MINUS = { "-" }
+Minus = { "-" }
 
-TRUE = { "true" }
+True = { "true" }
 
-FALSE = { "false" }
+False = { "false" }
 
-NIL = { "nil" }
+Nil = { "nil" }
 
-THIS = { "this" }
+This = { "this" }
 
-SUPER = { "super" }
+Super = { "super" }
 
-COMMA = { "," }
+Comma = { "," }
 
 // skip white space
 
-WHITESPACE = _{ WHITE_SPACE }
+Whitespace = _{ WHITE_SPACE }
