@@ -152,4 +152,4 @@ Comma = { "," }
 
 // skip white space
 
-Whitespace = _{ WHITE_SPACE }
+WHITESPACE = _{ WHITE_SPACE }
