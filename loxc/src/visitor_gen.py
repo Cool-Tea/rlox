@@ -19,9 +19,7 @@ def generate_visitor():
   rules = []
   with open('lox.pest', 'r', encoding='utf-8') as f:
     for line in f:
-      if line.startswith('WHITESPACE'):
-        continue
-      if re.match(r'^(.*?) = .*', line):
+      if re.match(r'^(.*?) = [^_].*', line):
         name = re.match(r'^(.*?) = .*', line).group(1)
         rules.append(name)
 

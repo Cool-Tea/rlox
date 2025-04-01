@@ -61,8 +61,8 @@ mod tests {
     #[test]
     fn test2() {
         let lox_str = "\
-            var a = 3.1415926;\n\
-            print a;\n\
+            var a = 3.1415926; // comment\n\
+            print /* comment */ a;\n\
             ";
         let tree = LoxParser::parse(Rule::Program, lox_str)
             .unwrap()
@@ -70,5 +70,14 @@ mod tests {
             .unwrap();
         let mut visitor = TestVisitor {};
         visitor.visit(tree);
+    }
+
+    #[test]
+    fn test_fail() {
+        let lox_str = "a var = 3.14";
+        match LoxParser::parse(Rule::Program, lox_str) {
+            Ok(_) => panic!("Should not reach here"),
+            Err(err) => println!("{}", err),
+        }
     }
 }
