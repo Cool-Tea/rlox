@@ -70,11 +70,11 @@ Args = { Expr ~ (Comma ~ Expr)* }
 
 // lex rule
 
-Num = { ASCII_DIGIT+ ~ (Dot ~ ASCII_DIGIT*)? }
+Num = @{ ASCII_DIGIT+ ~ (Dot ~ ASCII_DIGIT*)? }
 
 String = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
-Ident = { ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+Ident = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
 
 Class = { "class" }
 
