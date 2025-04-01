@@ -19,6 +19,8 @@ def generate_visitor():
   rules = []
   with open('lox.pest', 'r', encoding='utf-8') as f:
     for line in f:
+      if line.startswith('WHITESPACE'):
+        continue
       if re.match(r'^(.*?) = .*', line):
         name = re.match(r'^(.*?) = .*', line).group(1)
         rules.append(name)
@@ -31,11 +33,11 @@ pub trait Visitor {
   
   fn visit(&mut self, tree: Pair<'_, Rule>) -> Option<Self::Output> {
     match tree.as_rule() {
-      Rule::EOI => None,
 """
   for rule in rules:
     code += f'      Rule::{rule} => self.visit_{to_snake_case(rule)}(tree),\n'
-  code += """    }
+  code += """      _ => None,
+    }
   }
 """
 

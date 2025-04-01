@@ -6,7 +6,6 @@ pub trait Visitor {
 
     fn visit(&mut self, tree: Pair<'_, Rule>) -> Option<Self::Output> {
         match tree.as_rule() {
-            Rule::EOI => None,
             Rule::Program => self.visit_program(tree),
             Rule::Decl => self.visit_decl(tree),
             Rule::ClassDecl => self.visit_class_decl(tree),
@@ -73,7 +72,7 @@ pub trait Visitor {
             Rule::This => self.visit_this(tree),
             Rule::Super => self.visit_super(tree),
             Rule::Comma => self.visit_comma(tree),
-            Rule::Whitespace => self.visit_whitespace(tree),
+            _ => None,
         }
     }
 
@@ -533,13 +532,6 @@ pub trait Visitor {
     }
 
     fn visit_comma(&mut self, tree: Pair<'_, Rule>) -> Option<Self::Output> {
-        for child in tree.into_inner() {
-            self.visit(child);
-        }
-        None
-    }
-
-    fn visit_whitespace(&mut self, tree: Pair<'_, Rule>) -> Option<Self::Output> {
         for child in tree.into_inner() {
             self.visit(child);
         }
