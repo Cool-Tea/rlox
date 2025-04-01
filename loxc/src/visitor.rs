@@ -1,7 +1,7 @@
 use crate::parser::Rule;
 use pest::iterators::Pair;
 
-pub trait Visitor {
+pub trait LoxVisitor {
     type Output;
 
     fn visit(&mut self, tree: Pair<'_, Rule>) -> Option<Self::Output> {
