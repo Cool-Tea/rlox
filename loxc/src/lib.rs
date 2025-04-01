@@ -1,4 +1,5 @@
 pub mod parser;
+pub mod value;
 pub mod visitor;
 
 #[cfg(test)]
@@ -7,16 +8,19 @@ mod tests {
 
     use crate::{
         parser::{LoxParser, Rule},
-        visitor::Visitor,
+        value::LoxValue,
+        visitor::LoxVisitor,
     };
 
     struct TestVisitor;
 
-    impl Visitor for TestVisitor {
+    impl LoxVisitor for TestVisitor {
         type Output = ();
         fn visit_string(&mut self, tree: pest::iterators::Pair<'_, Rule>) -> Option<Self::Output> {
             let (line, col) = tree.line_col();
-            println!("[{line}:{col}] String = {}", tree.as_str());
+            let literal = tree.as_str();
+            let val = LoxValue::String(literal[1..literal.len() - 1].to_string());
+            println!("[{line}:{col}] String = {:#?}", val);
             None
         }
         fn visit_ident(&mut self, tree: pest::iterators::Pair<'_, Rule>) -> Option<Self::Output> {
@@ -26,7 +30,8 @@ mod tests {
         }
         fn visit_num(&mut self, tree: pest::iterators::Pair<'_, Rule>) -> Option<Self::Output> {
             let (line, col) = tree.line_col();
-            println!("[{line}:{col}] Number = {}", tree.as_str());
+            let val = LoxValue::Number(tree.as_str().parse().unwrap());
+            println!("[{line}:{col}] Number = {:#?}", val);
             None
         }
     }

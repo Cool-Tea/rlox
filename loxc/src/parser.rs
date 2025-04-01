@@ -1,6 +1,6 @@
 use pest_derive::Parser;
 
-#[derive(Parser)]
+#[derive(Parser, Debug, Clone, Copy)]
 #[grammar = "lox.pest"]
 pub struct LoxParser;
 

@@ -28,7 +28,7 @@ def generate_visitor():
   code = """use pest::iterators::Pair;
 use crate::parser::Rule;
 
-pub trait Visitor {
+pub trait LoxVisitor {
   type Output;
   
   fn visit(&mut self, tree: Pair<'_, Rule>) -> Option<Self::Output> {
