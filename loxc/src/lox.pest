@@ -152,6 +152,6 @@ Comma = { "," }
 
 // skip white space
 
-WHITESPACE = _{ WHITE_SPACE | Comment }
+WHITESPACE = _{ WHITE_SPACE }
 
-Comment = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
