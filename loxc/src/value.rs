@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
 #[derive(Debug, Clone)]
 pub enum LoxValue {
+    Bool(bool),
     Number(f64),
     String(String),
-    Object(HashMap<String, LoxValue>),
+    Nil,
 }
