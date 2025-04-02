@@ -19,8 +19,19 @@ mod tests {
 
     #[test]
     fn parse_string() {
-        let lox_str = "\"hello world!\"";
-        let tree = LoxParser::parse(Rule::String, lox_str).expect("failed to parse string");
+        let lox_str = "fun returnFunction() {
+  var outside = \"outside\";
+
+  fun inner() {
+    print outside;
+  }
+
+  return inner;
+}
+
+var fn = returnFunction();
+fn();";
+        let tree = LoxParser::parse(Rule::Program, lox_str).expect("failed to parse string");
         print_recur(tree);
     }
 }
