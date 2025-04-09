@@ -48,7 +48,11 @@ Factor = { Unary ~ ((Mul | Div) ~ Unary)* }
 
 Unary = { (Not | Minus) ~ Unary | Call }
 
-Call = { Primary ~ (LParen ~ Args? ~ RParen | Dot ~ Ident)* }
+Call = { Primary ~ ( Calling | Visiting )* }
+
+Calling = { LParen ~ Args? ~ RParen }
+
+Visiting = { Dot ~ Ident }
 
 Primary = {
     True

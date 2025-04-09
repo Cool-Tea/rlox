@@ -105,6 +105,14 @@ pub enum Expr {
     Super,
     Binary(BinaryExpr),
     Unary(UnaryExpr),
+    Call(InvokeExpr),
+}
+
+// func()
+#[derive(Debug, Clone)]
+pub struct InvokeExpr {
+    pub callee: Box<Expr>,
+    pub args: Vec<Box<Expr>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -128,8 +136,7 @@ pub enum Operator {
     /* Unary operator */
     Not,
     Minus,
-    Invoke, // func()
-    Group,  // (expr)
+    Group, // (expr)
 }
 
 #[derive(Debug, Clone)]
@@ -143,4 +150,11 @@ pub struct BinaryExpr {
 pub struct UnaryExpr {
     pub op: Operator,
     pub expr: Box<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Terminal {
+    pub line: usize,
+    pub col: usize,
+    pub text: String,
 }
