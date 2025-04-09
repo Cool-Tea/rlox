@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod ast_generator;
 pub mod parser;
 pub mod value;
 pub mod visitor;
@@ -8,6 +9,7 @@ mod tests {
     use pest::Parser;
 
     use crate::{
+        ast_generator,
         parser::{LoxParser, Rule},
         value::LoxValue,
         visitor::LoxVisitor,
@@ -71,6 +73,29 @@ mod tests {
             .unwrap();
         let mut visitor = TestVisitor {};
         visitor.visit(tree);
+    }
+
+    #[test]
+    fn test_ast() {
+        let lox_str = "\
+            class Animal {\n\
+              init(name) {\n\
+                this.name = name;\n\
+              }\n\
+              speak() {\n\
+                print \"My name is \" + this.name;\n\
+              }\n\
+            }\n\
+            var dog = Animal(\"Buddy\");\n\
+            dog.speak();\n\
+            ";
+        let tree = LoxParser::parse(Rule::Program, lox_str)
+            .unwrap()
+            .next()
+            .unwrap();
+        let mut generator = ast_generator::AstGenerator {};
+        let ast = generator.visit_program(tree);
+        println!("{:?}", ast);
     }
 
     #[test]
