@@ -18,7 +18,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_string() {
+    fn test_success() {
         let lox_str = "fun returnFunction() {
   var outside = \"outside\";
 
@@ -33,5 +33,14 @@ var fn = returnFunction();
 fn();";
         let tree = LoxParser::parse(Rule::Program, lox_str).expect("failed to parse string");
         print_recur(tree);
+    }
+
+    #[test]
+    fn test_fail() {
+        let lox_str = "a var = 3.14";
+        match LoxParser::parse(Rule::Program, lox_str) {
+            Ok(_) => panic!("Should not reach here"),
+            Err(err) => println!("{}", err),
+        }
     }
 }

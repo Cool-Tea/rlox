@@ -48,7 +48,7 @@ Factor = { Unary ~ ((Mul | Div) ~ Unary)* }
 
 Unary = { (Not | Minus) ~ Unary | Call }
 
-Call = { Primary ~ ( Calling | Visiting )* }
+Call = { Primary ~ (Calling | Visiting)* }
 
 Calling = { LParen ~ Args? ~ RParen }
 
@@ -63,7 +63,7 @@ Primary = {
   | String
   | Ident
   | LParen ~ Expr ~ RParen
-  | Super ~ Dot ~ Ident
+  | Super
 }
 
 Func = { Ident ~ LParen ~ Params? ~ RParen ~ Block }
