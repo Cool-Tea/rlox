@@ -105,14 +105,7 @@ pub enum Expr {
     Super,
     Binary(BinaryExpr),
     Unary(UnaryExpr),
-    Call(InvokeExpr),
-}
-
-// func()
-#[derive(Debug, Clone)]
-pub struct InvokeExpr {
-    pub callee: Box<Expr>,
-    pub args: Vec<Box<Expr>>,
+    Call(CallExpr),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -150,6 +143,13 @@ pub struct BinaryExpr {
 pub struct UnaryExpr {
     pub op: Operator,
     pub expr: Box<Expr>,
+}
+
+// func()
+#[derive(Debug, Clone)]
+pub struct CallExpr {
+    pub callee: Box<Expr>,
+    pub args: Vec<Box<Expr>>,
 }
 
 #[cfg(test)]

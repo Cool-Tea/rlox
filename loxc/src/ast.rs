@@ -413,7 +413,7 @@ impl LoxAST {
                         }
                     }
                     call_children.next();
-                    res = Expr::Call(InvokeExpr {
+                    res = Expr::Call(CallExpr {
                         callee: Box::new(res),
                         args,
                     });
