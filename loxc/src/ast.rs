@@ -1,5 +1,7 @@
 use crate::ast_node::*;
-use crate::parser::Rule;
+use crate::parser::{LoxParser, Rule};
+use pest::Parser;
+use pest::error::Error;
 use pest::iterators::Pair;
 
 pub struct LoxAST {
@@ -7,7 +9,15 @@ pub struct LoxAST {
 }
 
 impl LoxAST {
-    pub fn from_pair(pair: Pair<'_, Rule>) -> Self {
+    #[allow(clippy::result_large_err)]
+    pub fn new(input: &str) -> Result<Self, Error<Rule>> {
+        match LoxParser::parse(Rule::Program, input)?.next() {
+            Some(tree) => Ok(Self::from_pair(tree)),
+            None => unreachable!(),
+        }
+    }
+
+    fn from_pair(pair: Pair<'_, Rule>) -> Self {
         LoxAST {
             program: Self::visit_program(pair),
         }
@@ -484,7 +494,8 @@ impl LoxAST {
     }
 
     fn visit_string(tree: Pair<'_, Rule>) -> Expr {
-        Expr::String(tree.as_str().to_string())
+        let quoted = tree.as_str();
+        Expr::String(quoted[1..quoted.len() - 1].to_string())
     }
 
     fn visit_ident(tree: Pair<'_, Rule>) -> Expr {

@@ -1,4 +1,13 @@
-use std::{cmp, env, process};
+mod ast_interpreter;
+
+use std::{
+    cmp, env,
+    io::{Write, stdin, stdout},
+    process,
+};
+
+use ast_interpreter::LoxInterpreter;
+use loxc::ast::LoxAST;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,9 +22,29 @@ fn main() {
 }
 
 fn run_repl() -> i32 {
+    let mut line = String::new();
+    loop {
+        line.clear();
+        print!("lox > ");
+        stdout().flush().unwrap();
+        let n = stdin().read_line(&mut line).expect("failed to read input");
+        if n == 0 {
+            println!("\nbye!");
+            break;
+        }
+        match LoxAST::new(&line) {
+            Ok(ast) => {
+                let mut interpreter = LoxInterpreter;
+                print!("  ");
+                stdout().flush().unwrap();
+                interpreter.interpret(ast);
+            }
+            Err(err) => println!("{}", err),
+        }
+    }
     0
 }
 
-fn run_script(script: &str) -> i32 {
+fn run_script(_script: &str) -> i32 {
     0
 }
