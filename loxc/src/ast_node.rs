@@ -129,7 +129,6 @@ pub enum Operator {
     /* Unary operator */
     Not,
     Minus,
-    Group, // (expr)
 }
 
 #[derive(Debug, Clone)]
