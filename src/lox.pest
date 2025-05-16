@@ -1,0 +1,153 @@
+// syntax
+
+Program = { SOI ~ Decl* ~ EOI }
+
+Decl = { ClassDecl | FunDecl | VarDecl | Stmt }
+
+ClassDecl = { Class ~ Identifier ~ (Less ~ Identifier)? ~ LBrace ~ Func* ~ RBrace }
+
+FunDecl = { Fun ~ Func }
+
+VarDecl = { Var ~ Identifier ~ (Equal ~ Expr)? ~ SemiColon }
+
+Stmt = { ExprStmt | ForStmt | IfStmt | PrintStmt | ReturnStmt | WhileStmt | Block }
+
+ExprStmt = { Expr ~ SemiColon }
+
+ForStmt = {
+    For ~ LParen ~ (VarDecl | ExprStmt | SemiColon) ~ Expr? ~ SemiColon ~ Expr? ~ RParen ~ Stmt
+}
+
+IfStmt = {
+    If ~ LParen ~ Expr ~ RParen ~ Stmt ~ (Else ~ Stmt)?
+}
+
+PrintStmt = { Print ~ Expr ~ SemiColon }
+
+ReturnStmt = { Return ~ Expr? ~ SemiColon }
+
+WhileStmt = {
+    While ~ LParen ~ Expr ~ RParen ~ Stmt
+}
+
+Block = { LBrace ~ Decl* ~ RBrace }
+
+Expr = { Call ~ Equal ~ Expr | Identifier ~ Equal ~ Expr | LogicOr }
+
+LogicOr = { LogicAnd ~ (Or ~ LogicAnd)* }
+
+LogicAnd = { Equality ~ (And ~ Equality)* }
+
+Equality = { Comp ~ ((BangEqual | EqualEqual) ~ Comp)* }
+
+Comp = { Term ~ ((Greater | GreaterEqual | Less | LessEqual) ~ Term)* }
+
+Term = { Factor ~ ((Plus | Minus) ~ Factor)* }
+
+Factor = { Unary ~ ((Star | Slash) ~ Unary)* }
+
+Unary = { (Bang | Minus) ~ Unary | Call }
+
+Call = { Primary ~ (LParen ~ Args? ~ RParen | Dot ~ Identifier)* }
+
+Primary = {
+    True
+  | False
+  | Nil
+  | This
+  | Number
+  | String
+  | Identifier
+  | LParen ~ Expr ~ RParen
+  | Super ~ Dot ~ Identifier
+}
+
+Func = { Identifier ~ LParen ~ Params? ~ RParen ~ Block }
+
+Params = { Identifier ~ (Comma ~ Identifier)* }
+
+Args = { Expr ~ (Comma ~ Expr)* }
+
+// lex rule
+
+Number = @{ ASCII_DIGIT+ ~ (Dot ~ ASCII_DIGIT*)? }
+
+String = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+Identifier = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+
+Class = { "class" }
+
+LBrace = { "{" }
+
+RBrace = { "}" }
+
+LParen = { "(" }
+
+RParen = { ")" }
+
+Dot = { "." }
+
+Fun = { "fun" }
+
+Var = { "var" }
+
+Equal = { "=" }
+
+SemiColon = { ";" }
+
+For = { "for" }
+
+If = { "if" }
+
+Else = { "else" }
+
+Print = { "print" }
+
+Return = { "return" }
+
+While = { "while" }
+
+Or = { "or" }
+
+And = { "and" }
+
+EqualEqual = { "==" }
+
+BangEqual = { "!=" }
+
+Greater = { ">" }
+
+GreaterEqual = { ">=" }
+
+Less = { "<" }
+
+LessEqual = { "<=" }
+
+Plus = { "+" }
+
+Minus = { "-" }
+
+Star = { "*" }
+
+Slash = { "/" }
+
+Bang = { "!" }
+
+True = { "true" }
+
+False = { "false" }
+
+Nil = { "nil" }
+
+This = { "this" }
+
+Super = { "super" }
+
+Comma = { "," }
+
+// skip white space
+
+WHITESPACE = _{ WHITE_SPACE }
+
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }

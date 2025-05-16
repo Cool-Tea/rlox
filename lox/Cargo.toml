@@ -1,8 +1,0 @@
-[package]
-name = "lox"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-loxc = { path = "../loxc" }
-lox-vm = { path = "../lox-vm" }
