@@ -30,7 +30,7 @@ impl Parser {
                     line,
                     col,
                     err.line(),
-                    "Invalid syntax.".to_string(),
+                    err.variant.message().to_string(),
                 ));
             }
         }

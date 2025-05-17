@@ -35,6 +35,7 @@ fn run_repl() {
                 if n == 0 {
                     break;
                 }
+                line.pop(); // remove line separator
                 let _ = run(&line);
             }
             Err(err) => eprintln!("{}", err),
