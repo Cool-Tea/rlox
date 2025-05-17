@@ -27,7 +27,7 @@ impl From<Pair<'_, Rule>> for Token {
         Token {
             line,
             col,
-            lexeme: value.to_string(),
+            lexeme: value.as_str().to_string(),
             rule: value.as_rule(),
         }
     }

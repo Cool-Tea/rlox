@@ -60,31 +60,11 @@ impl Parser {
 
     fn parse_expr(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
         let mut it = expr.into_inner();
-        let expr = match it.peek().unwrap().as_rule() {
+        match it.peek().unwrap().as_rule() {
             Rule::Call => todo!(),
             Rule::Identifier => todo!(),
-            Rule::LogicOr => Self::parse_or(env, it.next().unwrap())?,
+            Rule::LogicOr => Self::parse_or(env, it.next().unwrap()),
             _ => unreachable!(),
-        };
-        if Self::peek_match(&it, Rule::Equal) {
-            let equals = it.peek().unwrap();
-            let value = Self::parse_expr(env, it.next().unwrap())?;
-
-            if let Expr::Variable(var) = env.get_expr(expr).unwrap() {
-                let name = var.name.clone();
-                let value = Expr::Assign(AssignExpr { name, value });
-                Ok(env.push_expr(value))
-            } else {
-                let (line, col) = equals.line_col();
-                Err(Self::report(
-                    line,
-                    col,
-                    equals.as_str(),
-                    "Invalid assignment target.".to_string(),
-                ))
-            }
-        } else {
-            Ok(expr)
         }
     }
 

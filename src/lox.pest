@@ -74,7 +74,9 @@ Number = @{ ASCII_DIGIT+ ~ (Dot ~ ASCII_DIGIT*)? }
 
 String = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
-Identifier = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+Identifier = @{ !Reserved ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+Reserved = { Class | Fun | Var | For | If | Else | While | Print | Return | Or | And | True | False | Nil | This | Super }
 
 Class = { "class" }
 
