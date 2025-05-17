@@ -1,6 +1,8 @@
 mod ast;
 mod error;
+mod interpreter;
 mod parser;
+mod value;
 mod visitor;
 
 use std::{
@@ -50,7 +52,7 @@ fn run_script(path: &str) {
 }
 
 fn run(input: &str) -> Result<(), error::Error> {
-    let tree = parser::Parser::parse(input)?;
-    ast::util::ASTPrinter::print(tree.root(), &tree);
-    Ok(())
+    let ast = parser::Parser::parse(input)?;
+    let mut interpreter = interpreter::Interpreter::new();
+    interpreter.interpret(&ast)
 }

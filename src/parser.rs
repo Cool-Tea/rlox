@@ -9,6 +9,7 @@ use crate::error::Error;
 #[grammar = "lox.pest"]
 struct RawParser;
 
+#[derive(Debug, Clone)]
 pub struct Parser;
 
 impl Parser {
@@ -18,7 +19,7 @@ impl Parser {
     }
 
     pub fn parse(input: &str) -> Result<AST, Error> {
-        let tree = match RawParser::parse(Rule::Expr, input) {
+        let program = match RawParser::parse(Rule::Program, input) {
             Ok(pairs) => pairs,
             Err(err) => {
                 let (line, col) = match err.line_col {
@@ -34,11 +35,18 @@ impl Parser {
             }
         }
         .next()
-        .unwrap(); // expr
+        .unwrap(); // Program
 
         let mut env = AST::new();
-        let expr = Self::parse_expr(&mut env, tree)?;
-        env.set_root(expr);
+
+        for decl in program.into_inner() {
+            if decl.as_rule() == Rule::EOI {
+                break;
+            }
+            let stmt = Self::parse_decl(&mut env, decl)?;
+            env.add_entry(stmt);
+        }
+
         Ok(env)
     }
 
@@ -85,8 +93,7 @@ impl Parser {
         let mut expr = Self::parse_and(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_and(env, it.next().unwrap())?;
             let new = Expr::Logical(LogicalExpr { lhs: expr, rhs, op });
             expr = env.push_expr(new);
@@ -100,8 +107,7 @@ impl Parser {
         let mut expr = Self::parse_equality(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_equality(env, it.next().unwrap())?;
             let new = Expr::Logical(LogicalExpr { lhs: expr, rhs, op });
             expr = env.push_expr(new);
@@ -115,8 +121,7 @@ impl Parser {
         let mut expr = Self::parse_comp(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_comp(env, it.next().unwrap())?;
             let new = Expr::Binary(BinaryExpr { lhs: expr, rhs, op });
             expr = env.push_expr(new);
@@ -130,8 +135,7 @@ impl Parser {
         let mut expr = Self::parse_term(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_term(env, it.next().unwrap())?;
             let new = Expr::Binary(BinaryExpr { lhs: expr, rhs, op });
             expr = env.push_expr(new);
@@ -145,8 +149,7 @@ impl Parser {
         let mut expr = Self::parse_factor(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_factor(env, it.next().unwrap())?;
             let new = Expr::Binary(BinaryExpr { lhs: expr, rhs, op });
             expr = env.push_expr(new);
@@ -160,8 +163,7 @@ impl Parser {
         let mut expr = Self::parse_unary(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_unary(env, it.next().unwrap())?;
             let new = Expr::Binary(BinaryExpr { lhs: expr, rhs, op });
             expr = env.push_expr(new);
@@ -176,8 +178,7 @@ impl Parser {
             Self::parse_call(env, it.next().unwrap())?
         } else {
             let token = it.next().unwrap();
-            let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let rhs = Self::parse_unary(env, it.next().unwrap())?;
             let expr = Expr::Unary(UnaryExpr { rhs, op });
             env.push_expr(expr)
@@ -199,7 +200,7 @@ impl Parser {
 
             let token = it.next().unwrap();
             let (line, col) = token.line_col();
-            let op = Token::new(line, col, token.as_str());
+            let op = token.into();
             let new = Expr::Call(CallExpr {
                 callee: expr,
                 args,
@@ -257,7 +258,7 @@ impl Parser {
             Rule::Identifier => {
                 let token = it.next().unwrap();
                 let (line, col) = token.line_col();
-                let name = Token::new(line, col, token.as_str());
+                let name = token.into();
                 Expr::Variable(VariableExpr { name })
             }
             Rule::LParen => {
@@ -268,6 +269,46 @@ impl Parser {
             _ => unreachable!(),
         };
         Ok(env.push_expr(expr))
+    }
+
+    fn parse_stmt(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        match it.peek().unwrap().as_rule() {
+            Rule::ExprStmt => Self::parse_expr_stmt(env, it.next().unwrap()),
+            Rule::ForStmt => todo!(),
+            Rule::IfStmt => todo!(),
+            Rule::PrintStmt => Self::parse_print(env, it.next().unwrap()),
+            Rule::ReturnStmt => todo!(),
+            Rule::WhileStmt => todo!(),
+            Rule::Block => todo!(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn parse_expr_stmt(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        let value = Self::parse_expr(env, it.next().unwrap())?;
+        let stmt = Stmt::Expr(ExprStmt { expr: value });
+        Ok(env.push_stmt(stmt))
+    }
+
+    fn parse_print(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        it.next(); // discard print
+        let value = Self::parse_expr(env, it.next().unwrap())?;
+        let stmt = Stmt::Print(PrintStmt { expr: value });
+        Ok(env.push_stmt(stmt))
+    }
+
+    fn parse_decl(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        match it.peek().unwrap().as_rule() {
+            Rule::VarDecl => todo!(),
+            Rule::FunDecl => todo!(),
+            Rule::ClassDecl => todo!(),
+            Rule::Stmt => Self::parse_stmt(env, it.next().unwrap()),
+            _ => unreachable!(),
+        }
     }
 }
 

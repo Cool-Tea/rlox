@@ -1,16 +1,34 @@
+use pest::iterators::Pair;
+
+use crate::parser::Rule;
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub line: usize,
     pub col: usize,
     pub lexeme: String,
+    pub rule: Rule,
 }
 
 impl Token {
-    pub fn new(line: usize, col: usize, src: &str) -> Self {
+    pub fn new(line: usize, col: usize, lexeme: &str, rule: Rule) -> Self {
         Token {
             line,
             col,
-            lexeme: src.to_string(),
+            lexeme: lexeme.to_string(),
+            rule,
+        }
+    }
+}
+
+impl From<Pair<'_, Rule>> for Token {
+    fn from(value: Pair<'_, Rule>) -> Self {
+        let (line, col) = value.line_col();
+        Token {
+            line,
+            col,
+            lexeme: value.to_string(),
+            rule: value.as_rule(),
         }
     }
 }
@@ -137,18 +155,19 @@ pub struct WhileStmt {
     pub body: usize, // stmt
 }
 
+#[derive(Debug, Clone)]
 pub struct AST {
-    root: usize,
     exprs: Vec<Expr>,
     stmts: Vec<Stmt>,
+    entries: Vec<usize>,
 }
 
 impl AST {
     pub fn new() -> Self {
         AST {
-            root: 0,
             exprs: Vec::new(),
             stmts: Vec::new(),
+            entries: Vec::new(),
         }
     }
 
@@ -170,12 +189,12 @@ impl AST {
         self.stmts.get(i)
     }
 
-    pub fn root(&self) -> usize {
-        self.root
+    pub fn add_entry(&mut self, i: usize) {
+        self.entries.push(i);
     }
 
-    pub fn set_root(&mut self, root: usize) {
-        self.root = root;
+    pub fn entries(&self) -> &[usize] {
+        &self.entries
     }
 }
 
@@ -183,6 +202,7 @@ pub mod util {
     use super::*;
     use crate::visitor::*;
 
+    #[derive(Debug, Clone)]
     pub struct ASTPrinter;
 
     impl ASTPrinter {
@@ -293,14 +313,14 @@ mod tests {
         let mut lhs = env.push_expr(Expr::Literal(Literal::Number(123.0)));
         lhs = env.push_expr(Expr::Unary(UnaryExpr {
             rhs: lhs,
-            op: Token::new(1, 1, "-"),
+            op: Token::new(1, 1, "-", Rule::Minus),
         }));
         let mut rhs = env.push_expr(Expr::Literal(Literal::Number(45.67)));
         rhs = env.push_expr(Expr::Grouping(GroupingExpr { expr: rhs }));
         let expr = env.push_expr(Expr::Binary(BinaryExpr {
             lhs,
             rhs,
-            op: Token::new(1, 6, "*"),
+            op: Token::new(1, 6, "*", Rule::Star),
         }));
 
         let mut printer = util::ASTPrinter;

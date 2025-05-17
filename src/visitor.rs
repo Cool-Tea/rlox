@@ -22,3 +22,26 @@ pub trait ExprVisitor<R> {
     fn visit_unary(&mut self, expr: usize, env: &AST) -> R;
     fn visit_variable(&mut self, expr: usize, env: &AST) -> R;
 }
+
+pub trait StmtVisitor<R> {
+    fn visit_stmt(&mut self, stmt: usize, env: &AST) -> R {
+        match env.get_stmt(stmt).unwrap() {
+            Stmt::Block(_) => self.visit_block(stmt, env),
+            Stmt::Expr(_) => self.visit_expr_stmt(stmt, env),
+            Stmt::Func(_) => self.visit_func(stmt, env),
+            Stmt::If(_) => self.visit_if(stmt, env),
+            Stmt::Print(_) => self.visit_print(stmt, env),
+            Stmt::Return(_) => self.visit_return(stmt, env),
+            Stmt::Var(_) => self.visit_var(stmt, env),
+            Stmt::While(_) => self.visit_while(stmt, env),
+        }
+    }
+    fn visit_block(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_expr_stmt(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_func(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_if(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_print(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_return(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_var(&mut self, stmt: usize, env: &AST) -> R;
+    fn visit_while(&mut self, stmt: usize, env: &AST) -> R;
+}
