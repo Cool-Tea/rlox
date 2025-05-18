@@ -1,15 +1,30 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::ast::*;
+use crate::environment::Environment;
 use crate::error::Error;
 use crate::parser::Rule;
 use crate::value::Value;
 use crate::visitor::*;
 
 #[derive(Debug, Clone)]
-pub struct Interpreter {}
+pub struct Interpreter {
+    envs: Rc<RefCell<Vec<Environment>>>,
+    global: usize,
+    env: usize,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        let envs = Rc::new(RefCell::new(Vec::new()));
+        let global = Environment::new(envs.clone(), None);
+        envs.borrow_mut().push(global);
+        Interpreter {
+            envs,
+            global: 0,
+            env: 0,
+        }
     }
 
     pub fn interpret(&mut self, ast: &AST) -> Result<(), Error> {
@@ -22,6 +37,12 @@ impl Interpreter {
     fn report(line: usize, col: usize, content: &str, msg: String) -> Error {
         Error::report(line, col, content, msg);
         Error::Runtime
+    }
+
+    fn define(&mut self, name: String, value: Value) {
+        let mut envs = self.envs.borrow_mut();
+        let env = envs.get_mut(self.env).unwrap();
+        env.define(name, value);
     }
 }
 
@@ -37,7 +58,18 @@ fn as_number(value: Value, op: &Token) -> Result<f64, Error> {
 
 impl ExprVisitor<Result<Value, Error>> for Interpreter {
     fn visit_assign(&mut self, expr: usize, env: &AST) -> Result<Value, Error> {
-        todo!()
+        let expr = match env.get_expr(expr).unwrap() {
+            Expr::Assign(expr) => expr,
+            _ => unreachable!(),
+        };
+
+        let value = self.visit_expr(expr.value, env)?;
+
+        let mut envs = self.envs.borrow_mut();
+        let env = envs.get_mut(self.env).unwrap();
+        env.assign(&expr.name, value.clone())?;
+
+        Ok(value)
     }
 
     fn visit_binary(&mut self, expr: usize, env: &AST) -> Result<Value, Error> {
@@ -175,7 +207,14 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
     }
 
     fn visit_variable(&mut self, expr: usize, env: &AST) -> Result<Value, Error> {
-        todo!()
+        let expr = match env.get_expr(expr).unwrap() {
+            Expr::Variable(expr) => expr,
+            _ => unreachable!(),
+        };
+
+        let envs = self.envs.borrow();
+        let env = envs.get(self.env).unwrap();
+        env.get(&expr.name)
     }
 }
 
@@ -216,7 +255,18 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_var(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
-        todo!()
+        let stmt = match env.get_stmt(stmt).unwrap() {
+            Stmt::Var(stmt) => stmt,
+            _ => unreachable!(),
+        };
+        let value = if let Some(init) = stmt.init {
+            self.visit_expr(init, env)?
+        } else {
+            Value::Nil
+        };
+
+        self.define(stmt.name.lexeme.clone(), value);
+        Ok(())
     }
 
     fn visit_while(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
