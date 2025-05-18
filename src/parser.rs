@@ -172,23 +172,34 @@ impl Parser {
 
         while let Some(token) = it.next() {
             // TODO: support visiting
-            let mut args = if Self::peek_match(&it, Rule::RParen) {
-                Vec::<usize>::new()
-            } else {
-                Self::parse_args(env, it.next().unwrap())?
-            };
+            let new = match token.as_rule() {
+                Rule::LParen => {
+                    let mut args = if Self::peek_match(&it, Rule::RParen) {
+                        Vec::<usize>::new()
+                    } else {
+                        Self::parse_args(env, it.next().unwrap())?
+                    };
 
-            let token = it.next().unwrap();
-            let (line, col) = token.line_col();
-            let op = token.into();
-            let new = Expr::Call(CallExpr {
-                callee: expr,
-                args,
-                op,
-            });
+                    let token = it.next().unwrap();
+                    let (line, col) = token.line_col();
+                    let op = token.into();
+                    Expr::Call(CallExpr {
+                        callee: expr,
+                        args,
+                        op,
+                    })
+                }
+                Rule::Dot => {
+                    let op = token.into();
+                    let rhs = env.push_expr(Expr::Variable(VariableExpr {
+                        name: it.next().unwrap().into(),
+                    }));
+                    Expr::Logical(LogicalExpr { lhs: expr, rhs, op })
+                }
+                _ => unreachable!(),
+            };
             expr = env.push_expr(new);
         }
-
         Ok(expr)
     }
 
