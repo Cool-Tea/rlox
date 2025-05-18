@@ -1,4 +1,5 @@
 mod ast;
+mod environment;
 mod error;
 mod interpreter;
 mod parser;
@@ -56,4 +57,18 @@ fn run(input: &str) -> Result<(), error::Error> {
     let ast = parser::Parser::parse(input)?;
     let mut interpreter = interpreter::Interpreter::new();
     interpreter.interpret(&ast)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_var() {
+        let input = "var a = 0;
+        a = 2;
+        print a;";
+
+        assert!(run(input).is_ok());
+    }
 }

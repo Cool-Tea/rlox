@@ -62,7 +62,26 @@ impl Parser {
         let mut it = expr.into_inner();
         match it.peek().unwrap().as_rule() {
             Rule::Call => todo!(),
-            Rule::Identifier => todo!(),
+            Rule::Identifier => {
+                let target: Token = it.next().unwrap().into();
+                let target = env.push_expr(Expr::Variable(VariableExpr { name: target }));
+                let op: Token = it.next().unwrap().into(); // discard Equal
+                let value = Self::parse_expr(env, it.next().unwrap())?;
+
+                if let Expr::Variable(variable) = env.get_expr(target).unwrap() {
+                    Ok(env.push_expr(Expr::Assign(AssignExpr {
+                        name: variable.name.clone(),
+                        value,
+                    })))
+                } else {
+                    Err(Self::report(
+                        op.line,
+                        op.col,
+                        &op.lexeme,
+                        "Invalid assignment target.".to_string(),
+                    ))
+                }
+            }
             Rule::LogicOr => Self::parse_or(env, it.next().unwrap()),
             _ => unreachable!(),
         }
@@ -234,6 +253,7 @@ impl Parser {
             Rule::Nil => Expr::Literal(Literal::Nil),
             Rule::Number => {
                 let token = it.next().unwrap();
+                let _t = token.as_rule();
                 Expr::Literal(Literal::Number(match token.as_str().parse() {
                     Ok(f) => f,
                     Err(err) => {
@@ -248,7 +268,6 @@ impl Parser {
             }
             Rule::Identifier => {
                 let token = it.next().unwrap();
-                let (line, col) = token.line_col();
                 let name = token.into();
                 Expr::Variable(VariableExpr { name })
             }
@@ -263,17 +282,29 @@ impl Parser {
     }
 
     fn parse_stmt(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
-        let mut it = expr.into_inner();
-        match it.peek().unwrap().as_rule() {
-            Rule::ExprStmt => Self::parse_expr_stmt(env, it.next().unwrap()),
-            Rule::ForStmt => todo!(),
-            Rule::IfStmt => todo!(),
-            Rule::PrintStmt => Self::parse_print(env, it.next().unwrap()),
-            Rule::ReturnStmt => todo!(),
-            Rule::WhileStmt => todo!(),
-            Rule::Block => todo!(),
+        let stmt = expr.into_inner().next().unwrap();
+        match stmt.as_rule() {
+            Rule::Block => Self::parse_block(env, stmt),
+            Rule::ExprStmt => Self::parse_expr_stmt(env, stmt),
+            Rule::ForStmt => Self::parse_for(env, stmt),
+            Rule::IfStmt => Self::parse_if(env, stmt),
+            Rule::PrintStmt => Self::parse_print(env, stmt),
+            Rule::ReturnStmt => Self::parse_return(env, stmt),
+            Rule::WhileStmt => Self::parse_while(env, stmt),
             _ => unreachable!(),
         }
+    }
+
+    fn parse_block(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        it.next(); // discard LParen
+        let mut stmts: Vec<usize> = Vec::new();
+
+        for decl in it {
+            stmts.push(Self::parse_decl(env, decl)?);
+        }
+
+        Ok(env.push_stmt(Stmt::Block(Block { stmts })))
     }
 
     fn parse_expr_stmt(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
@@ -281,6 +312,74 @@ impl Parser {
         let value = Self::parse_expr(env, it.next().unwrap())?;
         let stmt = Stmt::Expr(ExprStmt { expr: value });
         Ok(env.push_stmt(stmt))
+    }
+
+    fn parse_for(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        // discard For LParen
+        it.next();
+        it.next();
+
+        let init = it.next().unwrap();
+        let init = match init.as_rule() {
+            Rule::SemiColon => None,
+            Rule::VarDecl => todo!(),
+            Rule::ExprStmt => Some(Self::parse_expr_stmt(env, init)?),
+            _ => unreachable!(),
+        };
+
+        let cond = if it.peek().unwrap().as_rule() == Rule::Expr {
+            Self::parse_expr(env, it.next().unwrap())?
+        } else {
+            env.push_expr(Expr::Literal(Literal::Bool(true)))
+        };
+
+        it.next(); // discard SemiColon
+
+        let post = if it.peek().unwrap().as_rule() == Rule::Expr {
+            Some(Self::parse_expr(env, it.next().unwrap())?)
+        } else {
+            None
+        };
+
+        it.next(); // discard RParen
+
+        let mut body = Self::parse_stmt(env, it.next().unwrap())?;
+
+        if let Some(post) = post {
+            let post = env.push_stmt(Stmt::Expr(ExprStmt { expr: post }));
+            body = env.push_stmt(Stmt::Block(Block {
+                stmts: vec![body, post],
+            }))
+        }
+
+        body = env.push_stmt(Stmt::While(WhileStmt { cond, body }));
+
+        if let Some(init) = init {
+            body = env.push_stmt(Stmt::Block(Block {
+                stmts: vec![init, body],
+            }));
+        }
+
+        Ok(body)
+    }
+
+    fn parse_if(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        it.next(); // discard if
+        it.next(); // discard LParen
+
+        let cond = Self::parse_expr(env, it.next().unwrap())?;
+        it.next(); // discard RParen
+
+        let then = Self::parse_stmt(env, it.next().unwrap())?;
+        let elze = if it.next().is_some() {
+            Some(Self::parse_stmt(env, it.next().unwrap())?)
+        } else {
+            None
+        };
+
+        Ok(env.push_stmt(Stmt::If(IfStmt { cond, then, elze })))
     }
 
     fn parse_print(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
@@ -291,15 +390,58 @@ impl Parser {
         Ok(env.push_stmt(stmt))
     }
 
+    fn parse_return(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        let keyword = it.next().unwrap().into();
+
+        let value = if it.peek().unwrap().as_rule() == Rule::Expr {
+            Self::parse_expr(env, it.next().unwrap())?
+        } else {
+            env.push_expr(Expr::Literal(Literal::Nil))
+        };
+
+        Ok(env.push_stmt(Stmt::Return(ReturnStmt { value, keyword })))
+    }
+
+    fn parse_while(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        // discard While LParen
+        it.next();
+        it.next();
+
+        let cond = Self::parse_expr(env, it.next().unwrap())?;
+        it.next(); // discard RParen
+
+        let stmt = Self::parse_stmt(env, it.next().unwrap())?;
+
+        Ok(env.push_stmt(Stmt::While(WhileStmt { cond, body: stmt })))
+    }
+
     fn parse_decl(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
         let mut it = expr.into_inner();
-        match it.peek().unwrap().as_rule() {
-            Rule::VarDecl => todo!(),
+        let decl = it.next().unwrap();
+        match decl.as_rule() {
+            Rule::VarDecl => Self::parse_var(env, decl),
             Rule::FunDecl => todo!(),
             Rule::ClassDecl => todo!(),
-            Rule::Stmt => Self::parse_stmt(env, it.next().unwrap()),
+            Rule::Stmt => Self::parse_stmt(env, decl),
             _ => unreachable!(),
         }
+    }
+
+    fn parse_var(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        it.next(); // discard Var
+
+        let name: Token = it.next().unwrap().into();
+
+        let init = if it.next().unwrap().as_rule() == Rule::Equal {
+            Some(Self::parse_expr(env, it.next().unwrap())?)
+        } else {
+            None
+        };
+
+        Ok(env.push_stmt(Stmt::Var(VarStmt { name, init })))
     }
 }
 
