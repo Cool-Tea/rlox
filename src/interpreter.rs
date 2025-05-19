@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::rc::Weak;
 
 use crate::ast::*;
 use crate::environment::Environment;
@@ -10,20 +11,18 @@ use crate::visitor::*;
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
-    envs: Rc<RefCell<Vec<Environment>>>,
-    global: usize,
-    env: usize,
+    clos_encl: Vec<Weak<RefCell<Environment>>>, // enclosing environment of closure
+    global: Rc<RefCell<Environment>>,
+    env: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        let envs = Rc::new(RefCell::new(Vec::new()));
-        let global = Environment::new(envs.clone(), None);
-        envs.borrow_mut().push(global);
+        let global = Rc::new(RefCell::new(Environment::new(None)));
         Interpreter {
-            envs,
-            global: 0,
-            env: 0,
+            clos_encl: Vec::new(),
+            global: global.clone(),
+            env: global.clone(),
         }
     }
 
@@ -40,9 +39,31 @@ impl Interpreter {
     }
 
     fn define(&mut self, name: String, value: Value) {
-        let mut envs = self.envs.borrow_mut();
-        let env = envs.get_mut(self.env).unwrap();
-        env.define(name, value);
+        self.env.borrow_mut().define(name, value);
+    }
+
+    fn new_env(&self) -> Environment {
+        Environment::new(Some(self.env.clone()))
+    }
+
+    pub fn execute_block(
+        &mut self,
+        env: Environment,
+        stmts: &[usize],
+        ast: &AST,
+    ) -> Result<(), Error> {
+        let prev = self.env.clone();
+        self.env = Rc::new(RefCell::new(env));
+
+        for &stmt in stmts {
+            if let Err(e) = self.visit_stmt(stmt, ast) {
+                self.env = prev;
+                return Err(e);
+            }
+        }
+
+        self.env = prev;
+        Ok(())
     }
 }
 
@@ -65,9 +86,7 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
 
         let value = self.visit_expr(expr.value, env)?;
 
-        let mut envs = self.envs.borrow_mut();
-        let env = envs.get_mut(self.env).unwrap();
-        env.assign(&expr.name, value.clone())?;
+        self.env.borrow_mut().assign(&expr.name, value.clone())?;
 
         Ok(value)
     }
@@ -212,15 +231,18 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
             _ => unreachable!(),
         };
 
-        let envs = self.envs.borrow();
-        let env = envs.get(self.env).unwrap();
-        env.get(&expr.name)
+        self.env.borrow().get(&expr.name)
     }
 }
 
 impl StmtVisitor<Result<(), Error>> for Interpreter {
     fn visit_block(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
-        todo!()
+        let stmt = match env.get_stmt(stmt).unwrap() {
+            Stmt::Block(stmt) => stmt,
+            _ => unreachable!(),
+        };
+        let e = self.new_env();
+        self.execute_block(e, &stmt.stmts, env)
     }
 
     fn visit_expr_stmt(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
@@ -237,7 +259,18 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_if(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
-        todo!()
+        let stmt = match env.get_stmt(stmt).unwrap() {
+            Stmt::If(stmt) => stmt,
+            _ => unreachable!(),
+        };
+
+        if self.visit_expr(stmt.cond, env)?.is_truthy() {
+            self.visit_stmt(stmt.then, env)
+        } else if let Some(elze) = stmt.elze {
+            self.visit_stmt(elze, env)
+        } else {
+            Ok(())
+        }
     }
 
     fn visit_print(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
@@ -270,6 +303,14 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_while(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
-        todo!()
+        let stmt = match env.get_stmt(stmt).unwrap() {
+            Stmt::While(stmt) => stmt,
+            _ => unreachable!(),
+        };
+
+        while self.visit_expr(stmt.cond, env)?.is_truthy() {
+            self.visit_stmt(stmt.body, env)?;
+        }
+        Ok(())
     }
 }

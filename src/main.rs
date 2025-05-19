@@ -71,4 +71,96 @@ mod tests {
 
         assert!(run(input).is_ok());
     }
+
+    #[test]
+    fn test_block() {
+        let input = "var a = \"global a\";
+            var b = \"global b\";
+            var c = \"global c\";
+            {
+                var a = \"outer a\";
+                var b = \"outer b\";
+                {
+                    var a = \"inner a\";
+                    print a;
+                    print b;
+                    print c;
+                }
+                print a;
+                print b;
+                print c;
+            }
+            print a;
+            print b;
+            print c;";
+
+        assert!(run(input).is_ok());
+    }
+
+    #[test]
+    fn test_short_circuit() {
+        assert!(run("print \"hi\" or 2;").is_ok());
+        assert!(run("print nil or \"yes\";").is_ok());
+    }
+
+    #[test]
+    fn test_control_flow() {
+        let fib = "var a = 0;
+            var temp;
+            for (var b = 1; a < 10000; b = temp + b) {
+                print a;
+                temp = a;
+                a = b;
+            }";
+        assert!(run(fib).is_ok());
+    }
+
+    #[test]
+    fn test_func() {
+        let hi = "fun sayHi(first, last) {
+                print \"Hi, \" + first + \" \" + last + \"!\";
+            }
+            sayHi(\"Dear\", \"Reader\");";
+        assert!(run(hi).is_ok());
+
+        let ret = "fun fib(n) {
+                if (n <= 1) return n;
+                return fib(n - 2) + fib(n - 1);
+            }
+            for (var i = 0; i < 20; i = i + 1) {
+                print fib(i);
+            }";
+        assert!(run(ret).is_ok());
+
+        let local = "fun makeCounter() {
+                var i = 0;
+                fun count() {
+                    i = i + 1;
+                    print i;
+                }
+
+                return count;
+            }
+            var c1 = makeCounter();
+            var c2 = makeCounter();
+            c1();
+            c1();
+            c2();";
+        assert!(run(local).is_ok());
+    }
+
+    #[test]
+    fn test_closure() {
+        let input = "var a = \"global\";
+            {
+                fun showA() {
+                    print a;
+                }
+                showA();
+
+                var a = \"block\";
+                showA();
+            }";
+        assert!(run(input).is_ok());
+    }
 }

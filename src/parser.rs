@@ -297,10 +297,13 @@ impl Parser {
 
     fn parse_block(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
         let mut it = expr.into_inner();
-        it.next(); // discard LParen
+        it.next(); // discard LBrace
         let mut stmts: Vec<usize> = Vec::new();
 
         for decl in it {
+            if decl.as_rule() == Rule::RBrace {
+                break;
+            }
             stmts.push(Self::parse_decl(env, decl)?);
         }
 
@@ -323,7 +326,7 @@ impl Parser {
         let init = it.next().unwrap();
         let init = match init.as_rule() {
             Rule::SemiColon => None,
-            Rule::VarDecl => todo!(),
+            Rule::VarDecl => Some(Self::parse_var(env, init)?),
             Rule::ExprStmt => Some(Self::parse_expr_stmt(env, init)?),
             _ => unreachable!(),
         };
