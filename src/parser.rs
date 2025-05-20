@@ -193,14 +193,13 @@ impl Parser {
             // TODO: support visiting
             let new = match token.as_rule() {
                 Rule::LParen => {
-                    let mut args = if Self::peek_match(&it, Rule::RParen) {
+                    let args = if Self::peek_match(&it, Rule::RParen) {
                         Vec::<usize>::new()
                     } else {
                         Self::parse_args(env, it.next().unwrap())?
                     };
 
                     let token = it.next().unwrap();
-                    let (line, col) = token.line_col();
                     let op = token.into();
                     Expr::Call(CallExpr {
                         callee: expr,
@@ -425,7 +424,7 @@ impl Parser {
         let decl = it.next().unwrap();
         match decl.as_rule() {
             Rule::VarDecl => Self::parse_var(env, decl),
-            Rule::FunDecl => todo!(),
+            Rule::FunDecl => Self::parse_fun(env, decl),
             Rule::ClassDecl => todo!(),
             Rule::Stmt => Self::parse_stmt(env, decl),
             _ => unreachable!(),
@@ -445,6 +444,53 @@ impl Parser {
         };
 
         Ok(env.push_stmt(Stmt::Var(VarStmt { name, init })))
+    }
+
+    fn parse_fun(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        it.next(); // discard Fun
+        Self::parse_func(env, it.next().unwrap())
+    }
+
+    fn parse_func(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
+        let mut it = expr.into_inner();
+        let name: Token = it.next().unwrap().into();
+        it.next(); // discard LParen
+
+        let params = if it.peek().unwrap().as_rule() == Rule::RParen {
+            Vec::new()
+        } else {
+            Self::parse_params(it.next().unwrap())?
+        };
+
+        it.next(); // discard RParen
+        let body = Self::parse_block(env, it.next().unwrap())?;
+
+        Ok(env.push_stmt(Stmt::Func(FuncStmt { name, params, body })))
+    }
+
+    fn parse_params(expr: Pair<'_, Rule>) -> Result<Vec<Token>, Error> {
+        let mut it = expr.into_inner();
+        let mut params: Vec<Token> = Vec::new();
+
+        let expr = it.next().unwrap().into();
+        params.push(expr);
+
+        while let Some(token) = it.next() {
+            if params.len() >= 255 {
+                let (line, col) = token.line_col();
+                return Err(Self::report(
+                    line,
+                    col,
+                    token.as_str(),
+                    "Cannot have more than 255 arguments.".to_string(),
+                ));
+            }
+            let token = it.next().unwrap().into();
+            params.push(token);
+        }
+
+        Ok(params)
     }
 }
 

@@ -122,7 +122,7 @@ pub struct ExprStmt {
 pub struct FuncStmt {
     pub name: Token,
     pub params: Vec<Token>,
-    pub body: Vec<usize>, // stmts
+    pub body: usize, // block
 }
 
 #[derive(Debug, Clone)]

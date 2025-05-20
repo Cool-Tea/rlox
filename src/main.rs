@@ -1,6 +1,7 @@
 mod ast;
 mod environment;
 mod error;
+mod function;
 mod interpreter;
 mod parser;
 mod value;
@@ -132,6 +133,12 @@ mod tests {
             }";
         assert!(run(ret).is_ok());
 
+        let native = "print clock();";
+        assert!(run(native).is_ok());
+    }
+
+    #[test]
+    fn test_closure() {
         let local = "fun makeCounter() {
                 var i = 0;
                 fun count() {
@@ -147,10 +154,7 @@ mod tests {
             c1();
             c2();";
         assert!(run(local).is_ok());
-    }
 
-    #[test]
-    fn test_closure() {
         let input = "var a = \"global\";
             {
                 fun showA() {

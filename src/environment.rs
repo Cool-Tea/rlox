@@ -25,6 +25,10 @@ impl Environment {
         Error::Runtime
     }
 
+    pub fn clear(&mut self) {
+        self.values.clear();
+    }
+
     pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
     }

@@ -40,7 +40,7 @@ LogicAnd = { Equality ~ (And ~ Equality)* }
 
 Equality = { Comp ~ ((BangEqual | EqualEqual) ~ Comp)* }
 
-Comp = { Term ~ ((Greater | GreaterEqual | Less | LessEqual) ~ Term)* }
+Comp = { Term ~ ((GreaterEqual | LessEqual | Greater | Less) ~ Term)* }
 
 Term = { Factor ~ ((Plus | Minus) ~ Factor)* }
 

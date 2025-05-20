@@ -1,3 +1,4 @@
+use core::ops::Drop;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
@@ -5,6 +6,7 @@ use std::rc::Weak;
 use crate::ast::*;
 use crate::environment::Environment;
 use crate::error::Error;
+use crate::function::*;
 use crate::parser::Rule;
 use crate::value::Value;
 use crate::visitor::*;
@@ -19,6 +21,10 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         let global = Rc::new(RefCell::new(Environment::new(None)));
+        let clock_fn = native::ClockFn;
+        global
+            .borrow_mut()
+            .define(clock_fn.identifier(), Value::Function(Rc::new(clock_fn)));
         Interpreter {
             clos_encl: Vec::new(),
             global: global.clone(),
@@ -147,7 +153,41 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
     }
 
     fn visit_call(&mut self, expr: usize, env: &AST) -> Result<Value, Error> {
-        todo!()
+        let expr = match env.get_expr(expr).unwrap() {
+            Expr::Call(expr) => expr,
+            _ => unreachable!(),
+        };
+
+        let callee = self.visit_expr(expr.callee, env)?;
+        let mut args = Vec::new();
+        for &arg in expr.args.iter() {
+            let arg = self.visit_expr(arg, env)?;
+            args.push(arg);
+        }
+
+        if let Value::Function(func) = callee {
+            if func.arity() != args.len() {
+                Err(Self::report(
+                    expr.op.line,
+                    expr.op.col,
+                    &expr.op.lexeme,
+                    format!(
+                        "Expected {} arguments but got {}.",
+                        func.arity(),
+                        args.len()
+                    ),
+                ))
+            } else {
+                func.call(args, self, env)
+            }
+        } else {
+            Err(Self::report(
+                expr.op.line,
+                expr.op.col,
+                &expr.op.lexeme,
+                "Can only call functions and classes.".to_string(),
+            ))
+        }
     }
 
     fn visit_grouping(&mut self, expr: usize, env: &AST) -> Result<Value, Error> {
@@ -255,7 +295,13 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_func(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
-        todo!()
+        let stmt = match env.get_stmt(stmt).unwrap() {
+            Stmt::Func(stmt) => stmt,
+            _ => unreachable!(),
+        };
+        let func = Function::new(stmt, self.env.clone());
+        self.define(stmt.name.lexeme.clone(), Value::Function(Rc::new(func)));
+        Ok(())
     }
 
     fn visit_if(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
@@ -284,7 +330,11 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
     }
 
     fn visit_return(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
-        todo!()
+        let stmt = match env.get_stmt(stmt).unwrap() {
+            Stmt::Return(stmt) => stmt,
+            _ => unreachable!(),
+        };
+        Err(Error::Return(self.visit_expr(stmt.value, env)?))
     }
 
     fn visit_var(&mut self, stmt: usize, env: &AST) -> Result<(), Error> {
@@ -312,5 +362,15 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             self.visit_stmt(stmt.body, env)?;
         }
         Ok(())
+    }
+}
+
+impl Drop for Interpreter {
+    fn drop(&mut self) {
+        for clos in self.clos_encl.iter_mut() {
+            if let Some(clos) = clos.upgrade() {
+                clos.borrow_mut().clear();
+            }
+        }
     }
 }
