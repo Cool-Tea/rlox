@@ -6,6 +6,7 @@ use std::rc::Weak;
 use crate::ast::*;
 use crate::environment::Environment;
 use crate::error::Error;
+use crate::error::RtError;
 use crate::function::*;
 use crate::parser::Rule;
 use crate::value::Value;
@@ -39,9 +40,9 @@ impl Interpreter {
         Ok(())
     }
 
-    fn report(line: usize, col: usize, content: &str, msg: String) -> Error {
-        Error::report(line, col, content, msg);
-        Error::Runtime
+    fn report<T>(err: Error) -> Result<T, Error> {
+        err.report();
+        Err(err)
     }
 
     fn define(&mut self, name: String, value: Value) {
@@ -77,8 +78,9 @@ fn as_number(value: Value, op: &Token) -> Result<f64, Error> {
     match value {
         Value::Number(f) => Ok(f),
         _ => {
-            Error::report(op.line, op.col, &op.lexeme, "Expect number.".to_string());
-            Err(Error::Runtime)
+            let err = Error::Runtime(RtError::TypeMismatch);
+            err.report();
+            Err(err)
         }
     }
 }
@@ -167,26 +169,15 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
 
         if let Value::Function(func) = callee {
             if func.arity() != args.len() {
-                Err(Self::report(
-                    expr.op.line,
-                    expr.op.col,
-                    &expr.op.lexeme,
-                    format!(
-                        "Expected {} arguments but got {}.",
-                        func.arity(),
-                        args.len()
-                    ),
-                ))
+                Self::report(Error::Runtime(RtError::InvalidArgsNumber(
+                    args.len(),
+                    func.arity(),
+                )))
             } else {
                 func.call(args, self, env)
             }
         } else {
-            Err(Self::report(
-                expr.op.line,
-                expr.op.col,
-                &expr.op.lexeme,
-                "Can only call functions and classes.".to_string(),
-            ))
+            Self::report(Error::Runtime(RtError::CallNonCallable))
         }
     }
 
@@ -231,12 +222,7 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
                 }
             }
             _ => {
-                return Err(Self::report(
-                    expr.op.line,
-                    expr.op.col,
-                    &expr.op.lexeme,
-                    "Expect 'and' or 'or' in logical expression.".to_string(),
-                ));
+                unreachable!();
             }
         }
         self.visit_expr(expr.rhs, env)
@@ -253,12 +239,7 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
         match expr.op.rule {
             Rule::Minus => match rhs {
                 Value::Number(f) => Ok(Value::Number(-f)),
-                _ => Err(Self::report(
-                    expr.op.line,
-                    expr.op.col,
-                    &expr.op.lexeme,
-                    "Expect number.".to_string(),
-                )),
+                _ => Self::report(Error::Runtime(RtError::TypeMismatch)),
             },
             Rule::Bang => Ok(Value::Bool(!rhs.is_truthy())),
             _ => Ok(Value::Nil),

@@ -75,6 +75,8 @@ impl Callable for Function {
 pub mod native {
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use crate::error::RtError;
+
     use super::*;
 
     #[derive(Debug, Clone, Copy)]
@@ -90,7 +92,9 @@ pub mod native {
                 Ok(duration) => Ok(Value::Number(duration.as_secs_f64())),
                 Err(e) => {
                     println!("Error: {:?}", e);
-                    Err(Error::Runtime)
+                    Err(Error::Runtime(RtError::Other(
+                        "Failed to get current time".to_string(),
+                    )))
                 }
             }
         }

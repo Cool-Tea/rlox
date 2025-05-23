@@ -1,10 +1,13 @@
 PWD = $(shell pwd)
-RLOX = $(PWD)/target/release/rlox
+RLOX = $(PWD)/target/release/lox
 TEST_DIR = $(PWD)/tests
-TEST_FILE = $(shell find $(TEST_DIR) -name "*.in" -exec basename {} \;) 
+
+ifeq ($(TEST), ) 
+TEST = $(shell find $(TEST_DIR) -name "*.in" -exec basename {} \;) 
+endif
 
 $(shell mkdir -p $(TEST_DIR)/res)
-TEST_RES = $(addprefix $(TEST_DIR)/res/, $(TEST_FILE:%.in=%.pass))
+TEST_RES = $(addprefix $(TEST_DIR)/res/, $(TEST:%.in=%.pass))
 
 all: build
 
@@ -35,7 +38,10 @@ $(TEST_DIR)/res/%.pass: $(TEST_DIR)/%.in build
 			echo "\033[32;1mPass!\033[0m"; \
 			touch $@; \
 		else \
-			echo "\033[31;1mFail! expect: $$(cat $(TEST_DIR)/$*.out), actual: $$(cat $(TEST_DIR)/res/$*.res ) \033[0m"; \
+			expect=$$(cat $(TEST_DIR)/$*.out); \
+			actual=$$(cat $(TEST_DIR)/res/$*.res); \
+			echo "\033[31;1mFail! Expect: \033[0m$$expect"; \
+			echo "\033[31;1mActual: \033[0m$$actual"; \
 			touch $(TEST_DIR)/res/$*.fail; \
 		fi; \
 	}

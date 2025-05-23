@@ -13,9 +13,10 @@ struct RawParser;
 pub struct Parser;
 
 impl Parser {
-    fn report(line: usize, col: usize, content: &str, msg: String) -> Error {
-        Error::report(line, col, content, msg);
-        Error::Parse
+    fn report(content: &str, msg: String) -> Error {
+        let err = Error::Parse(content.to_string(), msg);
+        err.report();
+        err
     }
 
     pub fn parse(input: &str) -> Result<AST, Error> {
@@ -26,12 +27,7 @@ impl Parser {
                     pest::error::LineColLocation::Pos(line_col) => line_col,
                     pest::error::LineColLocation::Span(line_col, _) => line_col,
                 };
-                return Err(Self::report(
-                    line,
-                    col,
-                    err.line(),
-                    err.variant.message().to_string(),
-                ));
+                return Err(Self::report(err.line(), err.variant.message().to_string()));
             }
         }
         .next()
@@ -75,8 +71,6 @@ impl Parser {
                     })))
                 } else {
                     Err(Self::report(
-                        op.line,
-                        op.col,
                         &op.lexeme,
                         "Invalid assignment target.".to_string(),
                     ))
@@ -232,8 +226,6 @@ impl Parser {
             if args.len() >= 255 {
                 let (line, col) = token.line_col();
                 return Err(Self::report(
-                    line,
-                    col,
                     token.as_str(),
                     "Cannot have more than 255 arguments.".to_string(),
                 ));
@@ -253,13 +245,7 @@ impl Parser {
             Rule::Number => {
                 let token = it.next().unwrap();
                 let _t = token.as_rule();
-                Expr::Literal(Literal::Number(match token.as_str().parse() {
-                    Ok(f) => f,
-                    Err(err) => {
-                        let (line, col) = token.line_col();
-                        return Err(Self::report(line, col, token.as_str(), err.to_string()));
-                    }
-                }))
+                Expr::Literal(Literal::Number(token.as_str().parse().unwrap()))
             }
             Rule::String => {
                 let lexeme = it.next().unwrap().as_str();
@@ -480,8 +466,6 @@ impl Parser {
             if params.len() >= 255 {
                 let (line, col) = token.line_col();
                 return Err(Self::report(
-                    line,
-                    col,
                     token.as_str(),
                     "Cannot have more than 255 arguments.".to_string(),
                 ));

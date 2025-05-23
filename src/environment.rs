@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::ast::Token;
-use crate::error::Error;
+use crate::error::{Error, RtError};
 use crate::value::Value;
 
 #[derive(Debug, Clone)]
@@ -20,9 +20,9 @@ impl Environment {
         }
     }
 
-    fn report(line: usize, col: usize, content: &str, msg: String) -> Error {
-        Error::report(line, col, content, msg);
-        Error::Runtime
+    fn report<T>(err: Error) -> Result<T, Error> {
+        err.report();
+        Err(err)
     }
 
     pub fn clear(&mut self) {
@@ -39,12 +39,9 @@ impl Environment {
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow().get(name)
         } else {
-            Err(Self::report(
-                name.line,
-                name.col,
-                &name.lexeme,
-                format!("Undefined variable {}.", name.lexeme),
-            ))
+            Self::report(Error::Runtime(RtError::UndefinedVariable(
+                name.lexeme.clone(),
+            )))
         }
     }
 
@@ -55,12 +52,9 @@ impl Environment {
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow_mut().assign(name, value)
         } else {
-            Err(Self::report(
-                name.line,
-                name.col,
-                &name.lexeme,
-                format!("Undefined variable {}.", name.lexeme),
-            ))
+            Self::report(Error::Runtime(RtError::UndefinedVariable(
+                name.lexeme.clone(),
+            )))
         }
     }
 }
