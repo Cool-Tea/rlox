@@ -20,7 +20,7 @@ test-clean:
 	@rm -rf $(TEST_DIR)/res
 
 test: build $(TEST_RES)
-	@echo "Passed: `find $(TEST_DIR)/res/ -name *.pass | wc -l` , Failed: `find $(TEST_DIR)/res/ -name *.fail | wc -l`" 
+	@echo "\033[32;1mPassed: `find $(TEST_DIR)/res/ -name *.pass | wc -l`(`find $(TEST_DIR)/res/ -name *.pass -exec basename {} \;`) , \033[31;1mFailed: `find $(TEST_DIR)/res/ -name *.fail | wc -l`(`find $(TEST_DIR)/res/ -name *.fail -exec basename {} \;`)\033[0m" 
 	
 
 $(TEST_DIR)/res/%.pass: $(TEST_DIR)/%.in build

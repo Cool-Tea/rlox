@@ -126,7 +126,7 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
             Rule::Plus => match (lhs, rhs) {
                 (Value::Number(lhs), Value::Number(rhs)) => Value::Number(lhs + rhs),
                 (Value::String(lhs), Value::String(rhs)) => Value::String(lhs + &rhs),
-                _ => Value::Nil,
+                _ => return Self::report(Error::Runtime(RtError::TypeMismatch)),
             },
             Rule::Greater => {
                 let lhs = as_number(lhs, &expr.op)?;
@@ -148,7 +148,7 @@ impl ExprVisitor<Result<Value, Error>> for Interpreter {
                 let rhs = as_number(rhs, &expr.op)?;
                 Value::Bool(lhs <= rhs)
             }
-            Rule::Equal => Value::Bool(lhs == rhs),
+            Rule::EqualEqual => Value::Bool(lhs == rhs),
             Rule::BangEqual => Value::Bool(lhs != rhs),
             _ => Value::Nil,
         })

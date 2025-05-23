@@ -13,10 +13,10 @@ struct RawParser;
 pub struct Parser;
 
 impl Parser {
-    fn report(content: &str, msg: String) -> Error {
+    fn report<T>(content: &str, msg: String) -> Result<T, Error> {
         let err = Error::Parse(content.to_string(), msg);
         err.report();
-        err
+        Err(err)
     }
 
     pub fn parse(input: &str) -> Result<AST, Error> {
@@ -27,7 +27,7 @@ impl Parser {
                     pest::error::LineColLocation::Pos(line_col) => line_col,
                     pest::error::LineColLocation::Span(line_col, _) => line_col,
                 };
-                return Err(Self::report(err.line(), err.variant.message().to_string()));
+                return Self::report(err.line(), err.variant.message().to_string());
             }
         }
         .next()
@@ -57,10 +57,8 @@ impl Parser {
     fn parse_expr(env: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
         let mut it = expr.into_inner();
         match it.peek().unwrap().as_rule() {
-            Rule::Call => todo!(),
-            Rule::Identifier => {
-                let target: Token = it.next().unwrap().into();
-                let target = env.push_expr(Expr::Variable(VariableExpr { name: target }));
+            Rule::Call => {
+                let target = Self::parse_call(env, it.next().unwrap())?;
                 let op: Token = it.next().unwrap().into(); // discard Equal
                 let value = Self::parse_expr(env, it.next().unwrap())?;
 
@@ -70,10 +68,7 @@ impl Parser {
                         value,
                     })))
                 } else {
-                    Err(Self::report(
-                        &op.lexeme,
-                        "Invalid assignment target.".to_string(),
-                    ))
+                    Self::report(&op.lexeme, "Invalid assignment target.".to_string())
                 }
             }
             Rule::LogicOr => Self::parse_or(env, it.next().unwrap()),
@@ -184,7 +179,6 @@ impl Parser {
         let mut expr = Self::parse_primary(env, it.next().unwrap())?;
 
         while let Some(token) = it.next() {
-            // TODO: support visiting
             let new = match token.as_rule() {
                 Rule::LParen => {
                     let args = if Self::peek_match(&it, Rule::RParen) {
@@ -225,10 +219,10 @@ impl Parser {
         while let Some(token) = it.next() {
             if args.len() >= 255 {
                 let (line, col) = token.line_col();
-                return Err(Self::report(
+                return Self::report(
                     token.as_str(),
                     "Cannot have more than 255 arguments.".to_string(),
-                ));
+                );
             }
             args.push(Self::parse_expr(env, it.next().unwrap())?);
         }
@@ -465,10 +459,10 @@ impl Parser {
         while let Some(token) = it.next() {
             if params.len() >= 255 {
                 let (line, col) = token.line_col();
-                return Err(Self::report(
+                return Self::report(
                     token.as_str(),
                     "Cannot have more than 255 arguments.".to_string(),
-                ));
+                );
             }
             let token = it.next().unwrap().into();
             params.push(token);
