@@ -14,6 +14,14 @@ all: build
 build:
 	@cargo build --release
 
+submit: build
+	@rm lox.zip
+	@{ \
+		cd ..;\
+		zip -r lox.zip ./lox;\
+		mv lox.zip ./lox;\
+	}
+
 #--------------------| TESTS |------------------#
 
 test-clean:

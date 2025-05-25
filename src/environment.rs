@@ -9,7 +9,7 @@ use crate::value::Value;
 #[derive(Debug, Clone)]
 pub struct Environment {
     enclosing: Option<Rc<RefCell<Environment>>>,
-    values: HashMap<String, Value>,
+    values: HashMap<String, Rc<RefCell<Value>>>,
 }
 
 impl Environment {
@@ -29,28 +29,19 @@ impl Environment {
         self.values.clear();
     }
 
-    pub fn define(&mut self, name: String, value: Value) {
-        self.values.insert(name, value);
+    pub fn define(&mut self, name: String, value: Value) -> Result<(), Error> {
+        if self.values.contains_key(&name) {
+            return Self::report(Error::Semantic(crate::error::SemError::RepeatDefine));
+        }
+        self.values.insert(name, Rc::new(RefCell::new(value)));
+        Ok(())
     }
 
-    pub fn get(&self, name: &Token) -> Result<Value, Error> {
+    pub fn get(&self, name: &Token) -> Result<Rc<RefCell<Value>>, Error> {
         if self.values.contains_key(&name.lexeme) {
             Ok(self.values.get(&name.lexeme).unwrap().clone())
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow().get(name)
-        } else {
-            Self::report(Error::Runtime(RtError::UndefinedVariable(
-                name.lexeme.clone(),
-            )))
-        }
-    }
-
-    pub fn assign(&mut self, name: &Token, value: Value) -> Result<(), Error> {
-        if self.values.contains_key(&name.lexeme) {
-            self.values.insert(name.lexeme.clone(), value);
-            Ok(())
-        } else if let Some(enclosing) = &self.enclosing {
-            enclosing.borrow_mut().assign(name, value)
         } else {
             Self::report(Error::Runtime(RtError::UndefinedVariable(
                 name.lexeme.clone(),

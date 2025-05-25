@@ -13,10 +13,10 @@ pub trait Callable: Debug {
     fn arity(&self) -> usize;
     fn call(
         &self,
-        args: Vec<Value>,
+        args: Vec<Rc<RefCell<Value>>>,
         interpreter: &mut Interpreter,
-        env: &AST,
-    ) -> Result<Value, Error>;
+        ast: &AST,
+    ) -> Result<Rc<RefCell<Value>>, Error>;
     fn identifier(&self) -> String {
         "native".to_string()
     }
@@ -29,11 +29,15 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn new(decl: &FuncStmt, closure: Rc<RefCell<Environment>>) -> Self {
-        Function {
+    pub fn new(decl: &FuncStmt, closure: Rc<RefCell<Environment>>) -> Result<Rc<Self>, Error> {
+        let res = Rc::new(Function {
             decl: decl.clone(),
             closure,
-        }
+        });
+        res.closure
+            .borrow_mut()
+            .define(decl.name.lexeme.clone(), Value::Function(res.clone()))?;
+        Ok(res)
     }
 }
 
@@ -44,24 +48,24 @@ impl Callable for Function {
 
     fn call(
         &self,
-        args: Vec<Value>,
+        args: Vec<Rc<RefCell<Value>>>,
         interpreter: &mut Interpreter,
-        env: &AST,
-    ) -> Result<Value, Error> {
-        let mut e = Environment::new(Some(self.closure.clone()));
+        ast: &AST,
+    ) -> Result<Rc<RefCell<Value>>, Error> {
+        let mut env = Environment::new(Some(self.closure.clone()));
         for (param, arg) in zip(&self.decl.params, args) {
-            e.define(param.lexeme.clone(), arg);
+            env.define(param.lexeme.clone(), arg.borrow().clone())?;
         }
 
-        let body = match env.get_stmt(self.decl.body).unwrap() {
+        let body = match ast.get_stmt(self.decl.body).unwrap() {
             Stmt::Block(block) => block,
             _ => unreachable!(),
         };
 
-        match interpreter.execute_block(e, &body.stmts, env) {
-            Ok(_) => Ok(Value::Nil),
+        match interpreter.execute_block(env, &body.stmts, ast, true) {
+            Ok(_) => Ok(Rc::new(RefCell::new(Value::Nil))),
             Err(e) => match e {
-                Error::Return(value) => Ok(value),
+                Error::Return(value) => Ok(Rc::new(RefCell::new(value))),
                 _ => Err(e),
             },
         }
@@ -87,9 +91,14 @@ pub mod native {
             0
         }
 
-        fn call(&self, _: Vec<Value>, _: &mut Interpreter, _: &AST) -> Result<Value, Error> {
+        fn call(
+            &self,
+            _: Vec<Rc<RefCell<Value>>>,
+            _: &mut Interpreter,
+            _: &AST,
+        ) -> Result<Rc<RefCell<Value>>, Error> {
             match SystemTime::now().duration_since(UNIX_EPOCH) {
-                Ok(duration) => Ok(Value::Number(duration.as_secs_f64())),
+                Ok(duration) => Ok(Rc::new(RefCell::new(Value::Number(duration.as_secs_f64())))),
                 Err(e) => {
                     println!("Error: {:?}", e);
                     Err(Error::Runtime(RtError::Other(

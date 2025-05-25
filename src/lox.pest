@@ -32,7 +32,7 @@ WhileStmt = {
 
 Block = { LBrace ~ Decl* ~ RBrace }
 
-Expr = { Call  ~ Equal ~ Expr | LogicOr }
+Expr = { Call ~ Equal ~ Expr | LogicOr }
 
 LogicOr = { LogicAnd ~ (Or ~ LogicAnd)* }
 

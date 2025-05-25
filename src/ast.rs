@@ -1,6 +1,8 @@
+use std::cell::RefCell;
+
 use pest::iterators::Pair;
 
-use crate::parser::Rule;
+use crate::{parser::Rule, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -47,7 +49,7 @@ pub enum Expr {
 
 #[derive(Debug, Clone)]
 pub struct AssignExpr {
-    pub name: Token,
+    pub lhs: usize,
     pub value: usize,
 }
 
@@ -101,6 +103,7 @@ pub enum Stmt {
     Block(Block),
     Expr(ExprStmt),
     Func(FuncStmt),
+    Class(ClassStmt),
     If(IfStmt),
     Print(PrintStmt),
     Return(ReturnStmt),
@@ -123,6 +126,13 @@ pub struct FuncStmt {
     pub name: Token,
     pub params: Vec<Token>,
     pub body: usize, // block
+}
+
+#[derive(Debug, Clone)]
+pub struct ClassStmt {
+    pub name: Token,
+    pub superclass: Option<Token>,
+    pub methods: Vec<usize>,
 }
 
 #[derive(Debug, Clone)]

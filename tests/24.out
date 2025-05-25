@@ -1,1 +1,1 @@
-nil
+RuntimeError: Undefined property 'ghost'.

@@ -1,3 +1,5 @@
+use crate::class::Class;
+use crate::instance::Instance;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -6,6 +8,8 @@ use crate::function::Callable;
 #[derive(Debug, Clone)]
 pub enum Value {
     Function(Rc<dyn Callable>),
+    Class(Rc<Class>),
+    Instance(Instance),
     Number(f64),
     String(String),
     Bool(bool),
@@ -39,6 +43,8 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Function(clos) => write!(f, "<fn {}>", clos.identifier()),
+            Value::Class(class) => write!(f, "<class {}>", class.identifier()),
+            Value::Instance(instance) => write!(f, "<instance {}>", instance.class.borrow().name),
             Value::Number(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),
