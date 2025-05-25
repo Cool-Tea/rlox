@@ -16,6 +16,7 @@ build:
 
 submit: build
 	@-rm lox.zip
+	@-rm -r target/debug target/release/.fingerprint target/release/deps target/release/build target/release/examples target/release/incremental 
 	@{ \
 		cd ..;\
 		zip -r lox.zip ./lox;\

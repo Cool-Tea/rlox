@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::ast::Token;
 use crate::error::{Error, RtError, SemError, report};
 use crate::value::Value;
 

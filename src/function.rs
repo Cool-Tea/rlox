@@ -61,13 +61,17 @@ impl Callable for Function {
         if self.closure.borrow().contain("this".to_string()) {
             return;
         }
-        let mut env = Environment::new(Some(self.closure.clone()));
-        if let Some(superclass) = &instance.class.superclass {
-            let super_obj = Instance::new(superclass.clone(), instance.fields.borrow().clone());
-            env.define("super".to_string(), Value::Instance(Rc::new(super_obj)))
-                .unwrap();
-            env = Environment::new(Some(Rc::new(RefCell::new(env))));
+        let mut env = self.closure.borrow().clone();
+        if env.contain("super".to_string()) {
+            let super_obj = env.get("super".to_string()).unwrap();
+            let bind_super = if let Value::Class(super_class) = super_obj.borrow().clone() {
+                Value::Instance(Rc::new(Instance::new(super_class, instance.fields.clone())))
+            } else {
+                unreachable!();
+            };
+            super_obj.replace(bind_super);
         }
+        env = Environment::new(Some(Rc::new(RefCell::new(env))));
         env.define("this".to_string(), Value::Instance(instance))
             .unwrap();
         self.closure.replace(env);

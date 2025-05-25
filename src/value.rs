@@ -43,9 +43,9 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Function(clos) => write!(f, "<fn {}>", clos.identifier()),
-            Value::Class(class) => write!(f, "<class {}>", class.identifier()),
+            Value::Class(class) => write!(f, "{}", class.identifier()),
             Value::Instance(instance) => {
-                write!(f, "<instance {}>", instance.class.name)
+                write!(f, "{} instance", instance.class.name)
             }
             Value::Number(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),

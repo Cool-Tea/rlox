@@ -1,0 +1,1 @@
+Error: Can't use 'this' outside of a class.

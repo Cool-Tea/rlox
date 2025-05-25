@@ -68,7 +68,7 @@ impl Interpreter {
 
         if is_func {
             self.call_depth += 1;
-            if self.call_depth > 255 {
+            if self.call_depth > 65536 {
                 return report(Error::Runtime(RtError::StackOverflow));
             }
         }
@@ -392,11 +392,14 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
                 Stmt::Func(func) => func,
                 _ => unreachable!(),
             };
-            let func = Function::new(
-                method,
-                Rc::new(RefCell::new(self.env.borrow().clone())),
-                true,
-            )?;
+            let mut env = self.env.borrow().clone();
+            if let Some(superclass) = &superclass {
+                env = Environment::new(Some(Rc::new(RefCell::new(env))));
+                let super_obj = superclass.clone();
+                env.define("super".to_string(), Value::Class(super_obj))
+                    .unwrap();
+            }
+            let func = Function::new(method, Rc::new(RefCell::new(env)), true)?;
             methods.insert(method.name.lexeme.clone(), func);
         }
         let class = Class::new(stmt, methods, superclass)?;

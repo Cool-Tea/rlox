@@ -2,8 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     ast::{AST, ClassStmt},
-    environment::Environment,
-    error::{Error, RtError},
+    error::Error,
     function::{Callable, Function},
     instance::Instance,
     interpreter::Interpreter,
@@ -75,7 +74,10 @@ impl Callable for Class {
         _interpreter: &mut Interpreter,
         _ast: &AST,
     ) -> Result<Rc<RefCell<Value>>, Error> {
-        let res = Rc::new(Instance::new(Rc::new(self.clone()), HashMap::new()));
+        let res = Rc::new(Instance::new(
+            Rc::new(self.clone()),
+            Rc::new(RefCell::new(HashMap::new())),
+        ));
         if let Some(init) = &self.init {
             let init = (**init).clone();
             init.bind(res.clone());

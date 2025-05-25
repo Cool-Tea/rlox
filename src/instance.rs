@@ -8,14 +8,14 @@ use std::rc::Rc;
 #[derive(Debug, Clone)]
 pub struct Instance {
     pub class: Rc<Class>,
-    pub fields: RefCell<HashMap<String, Rc<RefCell<Value>>>>,
+    pub fields: Rc<RefCell<HashMap<String, Rc<RefCell<Value>>>>>,
 }
 
 impl Instance {
-    pub fn new(class: Rc<Class>, fields: HashMap<String, Rc<RefCell<Value>>>) -> Self {
+    pub fn new(class: Rc<Class>, fields: Rc<RefCell<HashMap<String, Rc<RefCell<Value>>>>>) -> Self {
         Instance {
             class,
-            fields: RefCell::new(fields),
+            fields: fields,
         }
     }
 

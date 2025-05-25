@@ -176,13 +176,8 @@ impl Parser {
                         Self::parse_args(ast, it.next().unwrap())?
                     };
 
-                    let token = it.next().unwrap();
-                    let op = token.into();
-                    Expr::Call(CallExpr {
-                        callee: expr,
-                        args,
-                        op,
-                    })
+                    it.next().unwrap();
+                    Expr::Call(CallExpr { callee: expr, args })
                 }
                 Rule::Dot => {
                     let op = token.into();
@@ -371,7 +366,7 @@ impl Parser {
 
     fn parse_return(ast: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {
         let mut it = expr.into_inner();
-        let keyword = it.next().unwrap().into();
+        it.next().unwrap();
 
         let value = if it.peek().unwrap().as_rule() == Rule::Expr {
             Self::parse_expr(ast, it.next().unwrap())?
@@ -379,7 +374,7 @@ impl Parser {
             ast.push_expr(Expr::Literal(Literal::Nil))
         };
 
-        Ok(ast.push_stmt(Stmt::Return(ReturnStmt { value, keyword })))
+        Ok(ast.push_stmt(Stmt::Return(ReturnStmt { value })))
     }
 
     fn parse_while(ast: &mut AST, expr: Pair<'_, Rule>) -> Result<usize, Error> {

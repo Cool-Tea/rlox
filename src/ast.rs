@@ -1,22 +1,16 @@
-use std::cell::RefCell;
-
 use pest::iterators::Pair;
 
-use crate::{parser::Rule, value::Value};
+use crate::parser::Rule;
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    pub line: usize,
-    pub col: usize,
     pub lexeme: String,
     pub rule: Rule,
 }
 
 impl Token {
-    pub fn new(line: usize, col: usize, lexeme: &str, rule: Rule) -> Self {
+    pub fn new(_: usize, _: usize, lexeme: &str, rule: Rule) -> Self {
         Token {
-            line,
-            col,
             lexeme: lexeme.to_string(),
             rule,
         }
@@ -25,10 +19,7 @@ impl Token {
 
 impl From<Pair<'_, Rule>> for Token {
     fn from(value: Pair<'_, Rule>) -> Self {
-        let (line, col) = value.line_col();
         Token {
-            line,
-            col,
             lexeme: value.as_str().to_string(),
             rule: value.as_rule(),
         }
@@ -64,7 +55,6 @@ pub struct BinaryExpr {
 pub struct CallExpr {
     pub callee: usize,
     pub args: Vec<usize>,
-    pub op: Token,
 }
 
 #[derive(Debug, Clone)]
@@ -150,7 +140,6 @@ pub struct PrintStmt {
 #[derive(Debug, Clone)]
 pub struct ReturnStmt {
     pub value: usize, // expr
-    pub keyword: Token,
 }
 
 #[derive(Debug, Clone)]
