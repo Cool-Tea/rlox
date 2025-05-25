@@ -25,9 +25,17 @@ impl Class {
         superclass: Option<Rc<Class>>,
     ) -> Result<Rc<Self>, Error> {
         let init = if let Some(init) = method.get("init") {
-            Some(init.clone())
+            Some(Rc::new((**init).clone()))
         } else {
-            None
+            if let Some(superclass) = &superclass {
+                if let Some(init) = superclass.find_method("init") {
+                    Some(Rc::new(init))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         };
         Ok(Rc::new(Class {
             name: decl.name.lexeme.clone(),
@@ -37,21 +45,14 @@ impl Class {
         }))
     }
 
-    fn report<T>(err: Error) -> Result<T, Error> {
-        err.report();
-        Err(err)
-    }
-
-    pub fn find_method(&self, name: &str) -> Result<Rc<RefCell<Value>>, Error> {
+    pub fn find_method(&self, name: &str) -> Option<Function> {
         if let Some(method) = self.methods.get(name) {
-            return Ok(Rc::new(RefCell::new(Value::Function(Rc::new(
-                (**method).clone(),
-            )))));
+            return Some((**method).clone());
         }
         if let Some(superclass) = &self.superclass {
             return superclass.find_method(name);
         }
-        Self::report(Error::Runtime(RtError::UndefinedMember(name.to_string())))
+        None
     }
 }
 
@@ -74,11 +75,11 @@ impl Callable for Class {
         _interpreter: &mut Interpreter,
         _ast: &AST,
     ) -> Result<Rc<RefCell<Value>>, Error> {
-        let res = Rc::new(Instance::new(Rc::new(self.clone())));
+        let res = Rc::new(Instance::new(Rc::new(self.clone()), HashMap::new()));
         if let Some(init) = &self.init {
             let init = (**init).clone();
             init.bind(res.clone());
-            init.call(vec![], _interpreter, _ast)?;
+            init.call(_args, _interpreter, _ast)?;
         }
         Ok(Rc::new(RefCell::new(Value::Instance(res))))
     }

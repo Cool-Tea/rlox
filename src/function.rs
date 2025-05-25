@@ -62,6 +62,12 @@ impl Callable for Function {
             return;
         }
         let mut env = Environment::new(Some(self.closure.clone()));
+        if let Some(superclass) = &instance.class.superclass {
+            let super_obj = Instance::new(superclass.clone(), instance.fields.borrow().clone());
+            env.define("super".to_string(), Value::Instance(Rc::new(super_obj)))
+                .unwrap();
+            env = Environment::new(Some(Rc::new(RefCell::new(env))));
+        }
         env.define("this".to_string(), Value::Instance(instance))
             .unwrap();
         self.closure.replace(env);

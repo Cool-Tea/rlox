@@ -7,9 +7,7 @@ use std::rc::Weak;
 use crate::ast::*;
 use crate::class::Class;
 use crate::environment::Environment;
-use crate::error::Error;
-use crate::error::RtError;
-use crate::error::SemError;
+use crate::error::{Error, RtError, SemError, report};
 use crate::function::*;
 use crate::parser::Rule;
 use crate::value::Value;
@@ -48,11 +46,6 @@ impl Interpreter {
         Ok(())
     }
 
-    fn report<T>(err: Error) -> Result<T, Error> {
-        err.report();
-        Err(err)
-    }
-
     fn define(&mut self, name: String, value: Value) -> Result<(), Error> {
         let mut new_env = self.env.borrow().clone();
         new_env.define(name, value)?;
@@ -76,7 +69,7 @@ impl Interpreter {
         if is_func {
             self.call_depth += 1;
             if self.call_depth > 255 {
-                return Self::report(Error::Runtime(RtError::StackOverflow));
+                return report(Error::Runtime(RtError::StackOverflow));
             }
         }
         let backup_func_state = self.in_func;
@@ -132,7 +125,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
                 if let Value::Instance(ref instance) = *object.borrow() {
                     instance.set(name.lexeme.clone(), value.clone());
                 } else {
-                    return Self::report(Error::Runtime(RtError::UndefinedMember(
+                    return report(Error::Runtime(RtError::UndefinedMember(
                         name.lexeme.clone(),
                     )));
                 }
@@ -169,7 +162,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
                     Ok(res)
                 }
             } else {
-                Self::report(Error::Runtime(RtError::UndefinedMember(
+                report(Error::Runtime(RtError::UndefinedMember(
                     name.lexeme.clone(),
                 )))
             }
@@ -191,14 +184,14 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
                     let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
                     let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
                     if rhs == 0.0 {
-                        return Self::report(Error::Runtime(RtError::DivideByZero));
+                        return report(Error::Runtime(RtError::DivideByZero));
                     }
                     Value::Number(lhs / rhs)
                 }
                 Rule::Plus => match (lhs.borrow().clone(), rhs.borrow().clone()) {
                     (Value::Number(lhs), Value::Number(rhs)) => Value::Number(lhs + rhs),
                     (Value::String(lhs), Value::String(rhs)) => Value::String(lhs + &rhs),
-                    _ => return Self::report(Error::Runtime(RtError::TypeMismatch)),
+                    _ => return report(Error::Runtime(RtError::TypeMismatch)),
                 },
                 Rule::Greater => {
                     let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
@@ -244,7 +237,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
         match callee.borrow().clone() {
             Value::Function(func) => {
                 if func.arity() != args.len() {
-                    Self::report(Error::Runtime(RtError::InvalidArgsNumber(
+                    report(Error::Runtime(RtError::InvalidArgsNumber(
                         args.len(),
                         func.arity(),
                     )))
@@ -254,7 +247,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
             }
             Value::Class(class) => {
                 if class.arity() != args.len() {
-                    Self::report(Error::Runtime(RtError::InvalidArgsNumber(
+                    report(Error::Runtime(RtError::InvalidArgsNumber(
                         args.len(),
                         class.arity(),
                     )))
@@ -262,7 +255,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
                     class.call(args, self, ast)
                 }
             }
-            _ => Self::report(Error::Runtime(RtError::CallNonCallable)),
+            _ => report(Error::Runtime(RtError::CallNonCallable)),
         }
     }
 
@@ -324,7 +317,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
         Ok(Rc::new(RefCell::new(match expr.op.rule {
             Rule::Minus => match rhs.borrow().clone() {
                 Value::Number(f) => Value::Number(-f),
-                _ => return Self::report(Error::Runtime(RtError::TypeMismatch)),
+                _ => return report(Error::Runtime(RtError::TypeMismatch)),
             },
             Rule::Bang => Value::Bool(!rhs.borrow().is_truthy()),
             _ => Value::Nil,
@@ -388,7 +381,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             {
                 Some(class)
             } else {
-                return Self::report(Error::Semantic(SemError::InvalidInheritance));
+                return report(Error::Semantic(SemError::InvalidInheritance));
             }
         } else {
             None
@@ -437,7 +430,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
 
     fn visit_return(&mut self, stmt: usize, ast: &AST) -> Result<(), Error> {
         if !self.in_func {
-            return Self::report(Error::Semantic(SemError::RetFromTop));
+            return report(Error::Semantic(SemError::RetFromTop));
         }
         let stmt = match ast.get_stmt(stmt).unwrap() {
             Stmt::Return(stmt) => stmt,

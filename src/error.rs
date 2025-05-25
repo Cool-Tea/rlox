@@ -76,3 +76,8 @@ impl Error {
         }
     }
 }
+
+pub fn report<T>(err: Error) -> Result<T, Error> {
+    err.report();
+    Err(err)
+}

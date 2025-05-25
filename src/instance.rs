@@ -1,5 +1,5 @@
 use crate::class::Class;
-use crate::error::Error;
+use crate::error::{Error, RtError, report};
 use crate::value::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -12,10 +12,10 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn new(class: Rc<Class>) -> Self {
+    pub fn new(class: Rc<Class>, fields: HashMap<String, Rc<RefCell<Value>>>) -> Self {
         Instance {
             class,
-            fields: RefCell::new(HashMap::new()),
+            fields: RefCell::new(fields),
         }
     }
 
@@ -23,7 +23,13 @@ impl Instance {
         if let Some(value) = self.fields.borrow().get(name) {
             Ok(value.clone())
         } else {
-            self.class.find_method(name)
+            Ok(Rc::new(RefCell::new(Value::Function(Rc::new(
+                if let Some(method) = self.class.find_method(name) {
+                    method
+                } else {
+                    return report(Error::Runtime(RtError::UndefinedMember(name.to_string())));
+                },
+            )))))
         }
     }
 

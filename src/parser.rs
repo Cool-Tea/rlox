@@ -233,20 +233,25 @@ impl Parser {
                 let lexeme = it.next().unwrap().as_str();
                 Expr::Literal(Literal::String(lexeme[1..lexeme.len() - 1].to_string()))
             }
-            Rule::Identifier => {
-                let token = it.next().unwrap();
-                let name = token.into();
-                Expr::Variable(VariableExpr { name })
+            Rule::Identifier | Rule::This => Expr::Variable(VariableExpr {
+                name: it.next().unwrap().into(),
+            }),
+            Rule::Super => {
+                let lhs = it.next().unwrap(); // get Super
+                let dot = it.next().unwrap(); // get Dot
+                let method = it.next().unwrap().into();
+                Expr::Binary(BinaryExpr {
+                    lhs: ast.push_expr(Expr::Variable(VariableExpr { name: lhs.into() })),
+                    rhs: ast.push_expr(Expr::Variable(VariableExpr { name: method })),
+                    op: dot.into(),
+                })
             }
             Rule::LParen => {
                 it.next();
                 let expr = Self::parse_expr(ast, it.next().unwrap())?;
                 Expr::Grouping(GroupingExpr { expr })
             }
-            Rule::This => Expr::Variable(VariableExpr {
-                name: it.next().unwrap().into(),
-            }),
-            Rule::Super => todo!(),
+
             _ => unreachable!(),
         };
         Ok(ast.push_expr(expr))
