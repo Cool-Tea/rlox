@@ -243,6 +243,10 @@ impl Parser {
                 let expr = Self::parse_expr(ast, it.next().unwrap())?;
                 Expr::Grouping(GroupingExpr { expr })
             }
+            Rule::This => Expr::Variable(VariableExpr {
+                name: it.next().unwrap().into(),
+            }),
+            Rule::Super => todo!(),
             _ => unreachable!(),
         };
         Ok(ast.push_expr(expr))

@@ -9,7 +9,7 @@ use crate::function::Callable;
 pub enum Value {
     Function(Rc<dyn Callable>),
     Class(Rc<Class>),
-    Instance(Instance),
+    Instance(Rc<Instance>),
     Number(f64),
     String(String),
     Bool(bool),
@@ -44,7 +44,9 @@ impl Display for Value {
         match self {
             Value::Function(clos) => write!(f, "<fn {}>", clos.identifier()),
             Value::Class(class) => write!(f, "<class {}>", class.identifier()),
-            Value::Instance(instance) => write!(f, "<instance {}>", instance.class.borrow().name),
+            Value::Instance(instance) => {
+                write!(f, "<instance {}>", instance.class.name)
+            }
             Value::Number(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),

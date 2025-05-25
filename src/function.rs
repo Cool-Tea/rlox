@@ -6,6 +6,7 @@ use std::rc::Rc;
 use crate::ast::*;
 use crate::environment::Environment;
 use crate::error::Error;
+use crate::instance::Instance;
 use crate::interpreter::Interpreter;
 use crate::value::Value;
 
@@ -20,19 +21,26 @@ pub trait Callable: Debug {
     fn identifier(&self) -> String {
         "native".to_string()
     }
+    fn bind(&self, _instance: Rc<Instance>);
 }
 
 #[derive(Debug, Clone)]
 pub struct Function {
     decl: FuncStmt,
     closure: Rc<RefCell<Environment>>,
+    pub is_method: bool,
 }
 
 impl Function {
-    pub fn new(decl: &FuncStmt, closure: Rc<RefCell<Environment>>) -> Result<Rc<Self>, Error> {
+    pub fn new(
+        decl: &FuncStmt,
+        closure: Rc<RefCell<Environment>>,
+        is_method: bool,
+    ) -> Result<Rc<Self>, Error> {
         let res = Rc::new(Function {
             decl: decl.clone(),
             closure,
+            is_method,
         });
         res.closure
             .borrow_mut()
@@ -44,6 +52,19 @@ impl Function {
 impl Callable for Function {
     fn arity(&self) -> usize {
         self.decl.params.len()
+    }
+
+    fn bind(&self, instance: Rc<Instance>) {
+        if !self.is_method {
+            return;
+        }
+        if self.closure.borrow().contain("this".to_string()) {
+            return;
+        }
+        let mut env = Environment::new(Some(self.closure.clone()));
+        env.define("this".to_string(), Value::Instance(instance))
+            .unwrap();
+        self.closure.replace(env);
     }
 
     fn call(
@@ -89,6 +110,10 @@ pub mod native {
     impl Callable for ClockFn {
         fn arity(&self) -> usize {
             0
+        }
+
+        fn bind(&self, _instance: Rc<Instance>) {
+            // No binding needed for native functions
         }
 
         fn call(

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::ast::Token;
-use crate::error::{Error, RtError};
+use crate::error::{Error, RtError, SemError};
 use crate::value::Value;
 
 #[derive(Debug, Clone)]
@@ -37,15 +37,27 @@ impl Environment {
         Ok(())
     }
 
-    pub fn get(&self, name: &Token) -> Result<Rc<RefCell<Value>>, Error> {
-        if self.values.contains_key(&name.lexeme) {
-            Ok(self.values.get(&name.lexeme).unwrap().clone())
+    pub fn get(&self, name: String) -> Result<Rc<RefCell<Value>>, Error> {
+        if self.values.contains_key(&name) {
+            Ok(self.values.get(&name).unwrap().clone())
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow().get(name)
         } else {
-            Self::report(Error::Runtime(RtError::UndefinedVariable(
-                name.lexeme.clone(),
-            )))
+            if name == "this" {
+                Self::report(Error::Semantic(SemError::InvalidThis))
+            } else {
+                Self::report(Error::Runtime(RtError::UndefinedVariable(name.clone())))
+            }
         }
+    }
+
+    pub fn contain(&self, name: String) -> bool {
+        if self.values.contains_key(&name) {
+            return true;
+        }
+        if let Some(enclosing) = &self.enclosing {
+            return enclosing.borrow().contain(name);
+        }
+        false
     }
 }

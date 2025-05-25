@@ -19,12 +19,21 @@ pub struct Class {
 }
 
 impl Class {
-    pub fn new(decl: &ClassStmt) -> Result<Rc<Self>, Error> {
+    pub fn new(
+        decl: &ClassStmt,
+        method: HashMap<String, Rc<Function>>,
+        superclass: Option<Rc<Class>>,
+    ) -> Result<Rc<Self>, Error> {
+        let init = if let Some(init) = method.get("init") {
+            Some(init.clone())
+        } else {
+            None
+        };
         Ok(Rc::new(Class {
             name: decl.name.lexeme.clone(),
-            superclass: None,
-            methods: HashMap::new(),
-            init: None,
+            superclass: superclass,
+            methods: method,
+            init: init,
         }))
     }
 
@@ -35,7 +44,9 @@ impl Class {
 
     pub fn find_method(&self, name: &str) -> Result<Rc<RefCell<Value>>, Error> {
         if let Some(method) = self.methods.get(name) {
-            return Ok(Rc::new(RefCell::new(Value::Function(method.clone()))));
+            return Ok(Rc::new(RefCell::new(Value::Function(Rc::new(
+                (**method).clone(),
+            )))));
         }
         if let Some(superclass) = &self.superclass {
             return superclass.find_method(name);
@@ -53,15 +64,23 @@ impl Callable for Class {
         }
     }
 
+    fn bind(&self, _instance: Rc<Instance>) {
+        // No need to bind class
+    }
+
     fn call(
         &self,
         _args: Vec<Rc<RefCell<Value>>>,
         _interpreter: &mut Interpreter,
         _ast: &AST,
     ) -> Result<Rc<RefCell<Value>>, Error> {
-        Ok(Rc::new(RefCell::new(Value::Instance(Instance::new(
-            Rc::new(RefCell::new(self.clone())),
-        )))))
+        let res = Rc::new(Instance::new(Rc::new(self.clone())));
+        if let Some(init) = &self.init {
+            let init = (**init).clone();
+            init.bind(res.clone());
+            init.call(vec![], _interpreter, _ast)?;
+        }
+        Ok(Rc::new(RefCell::new(Value::Instance(res))))
     }
 
     fn identifier(&self) -> String {

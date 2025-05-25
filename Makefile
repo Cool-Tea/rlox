@@ -15,7 +15,7 @@ build:
 	@cargo build --release
 
 submit: build
-	@rm lox.zip
+	@-rm lox.zip
 	@{ \
 		cd ..;\
 		zip -r lox.zip ./lox;\

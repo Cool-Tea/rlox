@@ -1,5 +1,6 @@
 use core::ops::Drop;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::rc::Weak;
 
@@ -128,7 +129,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
                     unreachable!()
                 };
                 let object = self.visit_expr(visit.lhs, ast)?;
-                if let Value::Instance(ref mut instance) = *object.borrow_mut() {
+                if let Value::Instance(ref instance) = *object.borrow() {
                     instance.set(name.lexeme.clone(), value.clone());
                 } else {
                     return Self::report(Error::Runtime(RtError::UndefinedMember(
@@ -160,7 +161,13 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
                 unreachable!()
             };
             if let Value::Instance(instance) = lhs.borrow().clone() {
-                instance.get(&name.lexeme)
+                let res = instance.get(&name.lexeme)?;
+                if let Value::Function(ref func) = *res.borrow() {
+                    func.bind(instance.clone());
+                    Ok(Rc::new(RefCell::new(Value::Function(func.clone()))))
+                } else {
+                    Ok(res)
+                }
             } else {
                 Self::report(Error::Runtime(RtError::UndefinedMember(
                     name.lexeme.clone(),
@@ -330,7 +337,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
             _ => unreachable!(),
         };
 
-        self.env.borrow().get(&expr.name)
+        self.env.borrow().get(expr.name.lexeme.to_string())
     }
 }
 
@@ -358,7 +365,11 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             Stmt::Func(stmt) => stmt,
             _ => unreachable!(),
         };
-        let func = Function::new(stmt, Rc::new(RefCell::new(self.env.borrow().clone())))?;
+        let func = Function::new(
+            stmt,
+            Rc::new(RefCell::new(self.env.borrow().clone())),
+            false,
+        )?;
         self.define(stmt.name.lexeme.clone(), Value::Function(func))
     }
 
@@ -367,7 +378,35 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             Stmt::Class(stmt) => stmt,
             _ => unreachable!(),
         };
-        let class = Class::new(stmt)?;
+        let superclass = if let Some(superclass) = &stmt.superclass {
+            if let Value::Class(class) = self
+                .env
+                .borrow()
+                .get(superclass.lexeme.to_string())?
+                .borrow()
+                .clone()
+            {
+                Some(class)
+            } else {
+                return Self::report(Error::Semantic(SemError::InvalidInheritance));
+            }
+        } else {
+            None
+        };
+        let mut methods = HashMap::new();
+        for &method in stmt.methods.iter() {
+            let method = match ast.get_stmt(method).unwrap() {
+                Stmt::Func(func) => func,
+                _ => unreachable!(),
+            };
+            let func = Function::new(
+                method,
+                Rc::new(RefCell::new(self.env.borrow().clone())),
+                true,
+            )?;
+            methods.insert(method.name.lexeme.clone(), func);
+        }
+        let class = Class::new(stmt, methods, superclass)?;
         self.define(stmt.name.lexeme.clone(), Value::Class(class))
     }
 

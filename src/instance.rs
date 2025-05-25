@@ -7,27 +7,27 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct Instance {
-    pub class: Rc<RefCell<Class>>,
-    pub fields: HashMap<String, Rc<RefCell<Value>>>,
+    pub class: Rc<Class>,
+    pub fields: RefCell<HashMap<String, Rc<RefCell<Value>>>>,
 }
 
 impl Instance {
-    pub fn new(class: Rc<RefCell<Class>>) -> Self {
+    pub fn new(class: Rc<Class>) -> Self {
         Instance {
             class,
-            fields: HashMap::new(),
+            fields: RefCell::new(HashMap::new()),
         }
     }
 
     pub fn get(&self, name: &str) -> Result<Rc<RefCell<Value>>, Error> {
-        if let Some(value) = self.fields.get(name) {
+        if let Some(value) = self.fields.borrow().get(name) {
             Ok(value.clone())
         } else {
-            self.class.borrow().find_method(name)
+            self.class.find_method(name)
         }
     }
 
-    pub fn set(&mut self, name: String, value: Rc<RefCell<Value>>) {
-        self.fields.insert(name, value);
+    pub fn set(&self, name: String, value: Rc<RefCell<Value>>) {
+        self.fields.borrow_mut().insert(name, value);
     }
 }
