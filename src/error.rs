@@ -3,7 +3,7 @@ use crate::value::Value;
 #[derive(Debug, Clone)]
 pub enum SemError {
     RetFromTop,
-    JmpOutsideLoop(String),
+    // JmpOutsideLoop(String),
     RepeatDefine,
     InvalidInheritance,
     InvalidSuper,
@@ -41,8 +41,8 @@ impl Error {
                     "Error: {}.",
                     match err {
                         SemError::RetFromTop => "Can't return from top-level code".to_string(),
-                        SemError::JmpOutsideLoop(s) =>
-                            format!("Can't use ' {} ' outside of a loop", s),
+                        // SemError::JmpOutsideLoop(s) =>
+                        //     format!("Can't use ' {} ' outside of a loop", s),
                         SemError::RepeatDefine =>
                             "Already a variable with this name in this scope".to_string(),
                         SemError::InvalidInheritance => "Superclass must be a class".to_string(),

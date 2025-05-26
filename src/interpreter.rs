@@ -16,7 +16,6 @@ use crate::visitor::*;
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     clos_encl: Vec<Weak<RefCell<Environment>>>, // enclosing environment of closure
-    global: Rc<RefCell<Environment>>,
     env: Rc<RefCell<Environment>>,
     in_func: bool,
     call_depth: usize,
@@ -32,7 +31,6 @@ impl Interpreter {
             .unwrap();
         Interpreter {
             clos_encl: Vec::new(),
-            global: global.clone(),
             env: global.clone(),
             in_func: false,
             call_depth: 0,
@@ -47,9 +45,7 @@ impl Interpreter {
     }
 
     fn define(&mut self, name: String, value: Value) -> Result<(), Error> {
-        let mut new_env = self.env.borrow().clone();
-        new_env.define(name, value)?;
-        self.env = Rc::new(RefCell::new(new_env));
+        self.env.borrow_mut().define(name, value)?;
         Ok(())
     }
 
@@ -94,9 +90,9 @@ impl Interpreter {
     }
 }
 
-fn as_number(value: Value, _: &Token) -> Result<f64, Error> {
-    match value {
-        Value::Number(f) => Ok(f),
+fn as_number(value: Rc<RefCell<Value>>, _: &Token) -> Result<f64, Error> {
+    match *value.borrow() {
+        Value::Number(ref f) => Ok(*f),
         _ => {
             let err = Error::Runtime(RtError::TypeMismatch);
             err.report();
@@ -153,7 +149,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
             } else {
                 unreachable!()
             };
-            if let Value::Instance(instance) = lhs.borrow().clone() {
+            if let Value::Instance(ref instance) = *lhs.borrow() {
                 let res = instance.get(&name.lexeme)?;
                 if let Value::Function(ref func) = *res.borrow() {
                     func.bind(instance.clone());
@@ -171,46 +167,46 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
 
             Ok(Rc::new(RefCell::new(match expr.op.rule {
                 Rule::Minus => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     Value::Number(lhs - rhs)
                 }
                 Rule::Star => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     Value::Number(lhs * rhs)
                 }
                 Rule::Slash => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     if rhs == 0.0 {
                         return report(Error::Runtime(RtError::DivideByZero));
                     }
                     Value::Number(lhs / rhs)
                 }
-                Rule::Plus => match (lhs.borrow().clone(), rhs.borrow().clone()) {
+                Rule::Plus => match (&*lhs.borrow(), &*rhs.borrow()) {
                     (Value::Number(lhs), Value::Number(rhs)) => Value::Number(lhs + rhs),
-                    (Value::String(lhs), Value::String(rhs)) => Value::String(lhs + &rhs),
+                    (Value::String(lhs), Value::String(rhs)) => Value::String(lhs.clone() + rhs),
                     _ => return report(Error::Runtime(RtError::TypeMismatch)),
                 },
                 Rule::Greater => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     Value::Bool(lhs > rhs)
                 }
                 Rule::GreaterEqual => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     Value::Bool(lhs >= rhs)
                 }
                 Rule::Less => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     Value::Bool(lhs < rhs)
                 }
                 Rule::LessEqual => {
-                    let lhs = as_number(lhs.borrow().clone(), &expr.op)?;
-                    let rhs = as_number(rhs.borrow().clone(), &expr.op)?;
+                    let lhs = as_number(lhs, &expr.op)?;
+                    let rhs = as_number(rhs, &expr.op)?;
                     Value::Bool(lhs <= rhs)
                 }
                 Rule::EqualEqual => Value::Bool(lhs == rhs),
@@ -234,7 +230,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
             args.push(arg);
         }
 
-        match callee.borrow().clone() {
+        match &*callee.borrow() {
             Value::Function(func) => {
                 if func.arity() != args.len() {
                     report(Error::Runtime(RtError::InvalidArgsNumber(
@@ -315,8 +311,8 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
         let rhs = self.visit_expr(expr.rhs, ast)?;
 
         Ok(Rc::new(RefCell::new(match expr.op.rule {
-            Rule::Minus => match rhs.borrow().clone() {
-                Value::Number(f) => Value::Number(-f),
+            Rule::Minus => match *rhs.borrow() {
+                Value::Number(ref f) => Value::Number(-f),
                 _ => return report(Error::Runtime(RtError::TypeMismatch)),
             },
             Rule::Bang => Value::Bool(!rhs.borrow().is_truthy()),
@@ -341,7 +337,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             _ => unreachable!(),
         };
         let e = self.new_env();
-        self.execute_block(e, &stmt.stmts, ast, false)
+        self.execute_block(e, &stmt.stmts, ast, self.in_func)
     }
 
     fn visit_expr_stmt(&mut self, stmt: usize, ast: &AST) -> Result<(), Error> {

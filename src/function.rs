@@ -64,12 +64,16 @@ impl Callable for Function {
         let mut env = self.closure.borrow().clone();
         if env.contain("super".to_string()) {
             let super_obj = env.get("super".to_string()).unwrap();
-            let bind_super = if let Value::Class(super_class) = super_obj.borrow().clone() {
-                Value::Instance(Rc::new(Instance::new(super_class, instance.fields.clone())))
-            } else {
-                unreachable!();
+            let mut bind_super = Option::None;
+            if let Value::Class(super_class) = &*super_obj.borrow() {
+                bind_super = Some(Value::Instance(Rc::new(Instance::new(
+                    super_class.clone(),
+                    instance.fields.clone(),
+                ))));
             };
-            super_obj.replace(bind_super);
+            if let Some(bind_super) = bind_super {
+                super_obj.replace(bind_super);
+            }
         }
         env = Environment::new(Some(Rc::new(RefCell::new(env))));
         env.define("this".to_string(), Value::Instance(instance))
