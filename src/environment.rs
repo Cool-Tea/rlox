@@ -31,9 +31,9 @@ impl Environment {
         Ok(())
     }
 
-    pub fn get(&self, name: String) -> Result<Rc<RefCell<Value>>, Error> {
-        if self.values.contains_key(&name) {
-            Ok(self.values.get(&name).unwrap().clone())
+    pub fn get(&self, name: &str) -> Result<Rc<RefCell<Value>>, Error> {
+        if self.values.contains_key(name) {
+            Ok(self.values.get(name).unwrap().clone())
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow().get(name)
         } else if name == "this" {
@@ -41,12 +41,12 @@ impl Environment {
         } else if name == "super" {
             report(Error::Semantic(SemError::InvalidSuper))
         } else {
-            report(Error::Runtime(RtError::UndefinedVariable(name.clone())))
+            report(Error::Runtime(RtError::UndefinedVariable(name.to_string())))
         }
     }
 
-    pub fn contain(&self, name: String) -> bool {
-        if self.values.contains_key(&name) {
+    pub fn contain(&self, name: &str) -> bool {
+        if self.values.contains_key(name) {
             return true;
         }
         if let Some(enclosing) = &self.enclosing {

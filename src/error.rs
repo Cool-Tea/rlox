@@ -40,15 +40,13 @@ impl Error {
                 println!(
                     "Error: {}.",
                     match err {
-                        SemError::RetFromTop => "Can't return from top-level code".to_string(),
+                        SemError::RetFromTop => "Can't return from top-level code",
                         // SemError::JmpOutsideLoop(s) =>
                         //     format!("Can't use ' {} ' outside of a loop", s),
-                        SemError::RepeatDefine =>
-                            "Already a variable with this name in this scope".to_string(),
-                        SemError::InvalidInheritance => "Superclass must be a class".to_string(),
-                        SemError::InvalidSuper =>
-                            "Can't use 'super' in a class with no superclass".to_string(),
-                        SemError::InvalidThis => "Can't use 'this' outside of a class".to_string(),
+                        SemError::RepeatDefine => "Already a variable with this name in this scope",
+                        SemError::InvalidInheritance => "Superclass must be a class",
+                        SemError::InvalidSuper => "Can't use 'super' in a class with no superclass",
+                        SemError::InvalidThis => "Can't use 'this' outside of a class",
                     }
                 )
             }

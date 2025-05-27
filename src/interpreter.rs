@@ -326,7 +326,7 @@ impl ExprVisitor<Result<Rc<RefCell<Value>>, Error>> for Interpreter {
             _ => unreachable!(),
         };
 
-        self.env.borrow().get(expr.name.lexeme.to_string())
+        self.env.borrow().get(&expr.name.lexeme)
     }
 }
 
@@ -357,7 +357,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
         let func = Function::new(
             stmt,
             Rc::new(RefCell::new(self.env.borrow().clone())),
-            false,
+            FuncType::Normal,
         )?;
         self.define(stmt.name.lexeme.clone(), Value::Function(func))
     }
@@ -368,12 +368,7 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             _ => unreachable!(),
         };
         let superclass = if let Some(superclass) = &stmt.superclass {
-            if let Value::Class(class) = self
-                .env
-                .borrow()
-                .get(superclass.lexeme.to_string())?
-                .borrow()
-                .clone()
+            if let Value::Class(class) = self.env.borrow().get(&superclass.lexeme)?.borrow().clone()
             {
                 Some(class)
             } else {
@@ -390,12 +385,19 @@ impl StmtVisitor<Result<(), Error>> for Interpreter {
             };
             let mut env = self.env.borrow().clone();
             if let Some(superclass) = &superclass {
-                env = Environment::new(Some(Rc::new(RefCell::new(env))));
                 let super_obj = superclass.clone();
                 env.define("super".to_string(), Value::Class(super_obj))
                     .unwrap();
             }
-            let func = Function::new(method, Rc::new(RefCell::new(env)), true)?;
+            let func = Function::new(
+                method,
+                Rc::new(RefCell::new(env)),
+                if method.name.lexeme == "init" {
+                    FuncType::Initializer
+                } else {
+                    FuncType::Method
+                },
+            )?;
             methods.insert(method.name.lexeme.clone(), func);
         }
         let class = Class::new(stmt, methods, superclass)?;

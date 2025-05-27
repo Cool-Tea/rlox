@@ -1,0 +1,11 @@
+class Point{
+    init(y){
+        this.y = y;
+    }
+}
+var p = Point(3);
+p.x=5;
+print p.x*p.y;
+var q = p.init(7);
+print p.x*p.y;
+print q.x*q.y;

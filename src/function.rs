@@ -10,6 +10,13 @@ use crate::instance::Instance;
 use crate::interpreter::Interpreter;
 use crate::value::Value;
 
+#[derive(Debug, Clone, Copy)]
+pub enum FuncType {
+    Normal,
+    Method,
+    Initializer,
+}
+
 pub trait Callable: Debug {
     fn arity(&self) -> usize;
     fn call(
@@ -28,19 +35,19 @@ pub trait Callable: Debug {
 pub struct Function {
     decl: FuncStmt,
     closure: Rc<RefCell<Environment>>,
-    pub is_method: bool,
+    func_type: FuncType,
 }
 
 impl Function {
     pub fn new(
         decl: &FuncStmt,
         closure: Rc<RefCell<Environment>>,
-        is_method: bool,
+        func_type: FuncType,
     ) -> Result<Rc<Self>, Error> {
         let res = Rc::new(Function {
             decl: decl.clone(),
             closure,
-            is_method,
+            func_type,
         });
         res.closure
             .borrow_mut()
@@ -55,15 +62,15 @@ impl Callable for Function {
     }
 
     fn bind(&self, instance: Rc<Instance>) {
-        if !self.is_method {
+        if let FuncType::Normal = self.func_type {
             return;
         }
-        if self.closure.borrow().contain("this".to_string()) {
+        if self.closure.borrow().contain("this") {
             return;
         }
         let mut env = self.closure.borrow().clone();
-        if env.contain("super".to_string()) {
-            let super_obj = env.get("super".to_string()).unwrap();
+        if env.contain("super") {
+            let super_obj = env.get("super").unwrap();
             let mut bind_super = Option::None;
             if let Value::Class(super_class) = &*super_obj.borrow() {
                 bind_super = Some(Value::Instance(Rc::new(Instance::new(
@@ -75,7 +82,6 @@ impl Callable for Function {
                 super_obj.replace(bind_super);
             }
         }
-        env = Environment::new(Some(Rc::new(RefCell::new(env))));
         env.define("this".to_string(), Value::Instance(instance))
             .unwrap();
         self.closure.replace(env);
@@ -97,9 +103,17 @@ impl Callable for Function {
             _ => unreachable!(),
         };
 
-        match interpreter.execute_block(env, &body.stmts, ast, true) {
-            Ok(_) => Ok(Rc::new(RefCell::new(Value::Nil))),
-            Err(e) => match e {
+        match (
+            interpreter.execute_block(env, &body.stmts, ast, true),
+            self.func_type,
+        ) {
+            (Ok(_), FuncType::Initializer) => Ok(self.closure.borrow().get("this").unwrap()),
+            (Err(e), FuncType::Initializer) => match e {
+                Error::Return(_) => Ok(self.closure.borrow().get("this").unwrap()),
+                _ => Err(e),
+            },
+            (Ok(_), _) => Ok(Rc::new(RefCell::new(Value::Nil))),
+            (Err(e), _) => match e {
                 Error::Return(value) => Ok(Rc::new(RefCell::new(value))),
                 _ => Err(e),
             },
