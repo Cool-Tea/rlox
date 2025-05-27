@@ -1,0 +1,3 @@
+class Foo < Foo {}
+
+var foo = Foo();

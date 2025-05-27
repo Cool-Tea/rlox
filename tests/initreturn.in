@@ -1,0 +1,14 @@
+class Foo {
+    init() {
+        this.foo = 1;
+        if (this.foo == 0) return;
+        return "Foo";
+    }
+
+    say() {
+        print "Foo!";
+    }
+}
+
+var foo = Foo();
+foo.say();
