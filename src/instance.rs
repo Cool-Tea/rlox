@@ -13,10 +13,7 @@ pub struct Instance {
 
 impl Instance {
     pub fn new(class: Rc<Class>, fields: Rc<RefCell<HashMap<String, Rc<RefCell<Value>>>>>) -> Self {
-        Instance {
-            class,
-            fields: fields,
-        }
+        Instance { class, fields }
     }
 
     pub fn get(&self, name: &str) -> Result<Rc<RefCell<Value>>, Error> {

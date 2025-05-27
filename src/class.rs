@@ -25,22 +25,16 @@ impl Class {
     ) -> Result<Rc<Self>, Error> {
         let init = if let Some(init) = method.get("init") {
             Some(Rc::new((**init).clone()))
+        } else if let Some(superclass) = &superclass {
+            superclass.find_method("init").map(Rc::new)
         } else {
-            if let Some(superclass) = &superclass {
-                if let Some(init) = superclass.find_method("init") {
-                    Some(Rc::new(init))
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
+            None
         };
         Ok(Rc::new(Class {
             name: decl.name.lexeme.clone(),
-            superclass: superclass,
+            superclass,
             methods: method,
-            init: init,
+            init,
         }))
     }
 

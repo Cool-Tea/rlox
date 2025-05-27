@@ -476,7 +476,7 @@ impl Parser {
         let mut methods: Vec<usize> = Vec::new();
         it.next(); // discard LBrace
 
-        while let Some(token) = it.next() {
+        for token in it {
             if token.as_rule() == Rule::RBrace {
                 break;
             }

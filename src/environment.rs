@@ -36,14 +36,12 @@ impl Environment {
             Ok(self.values.get(&name).unwrap().clone())
         } else if let Some(enclosing) = &self.enclosing {
             enclosing.borrow().get(name)
+        } else if name == "this" {
+            report(Error::Semantic(SemError::InvalidThis))
+        } else if name == "super" {
+            report(Error::Semantic(SemError::InvalidSuper))
         } else {
-            if name == "this" {
-                report(Error::Semantic(SemError::InvalidThis))
-            } else if name == "super" {
-                report(Error::Semantic(SemError::InvalidSuper))
-            } else {
-                report(Error::Runtime(RtError::UndefinedVariable(name.clone())))
-            }
+            report(Error::Runtime(RtError::UndefinedVariable(name.clone())))
         }
     }
 
