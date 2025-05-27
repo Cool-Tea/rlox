@@ -1,0 +1,6 @@
+fun cook() {
+  super.cook();
+  print "Pipe full of crème pâtissière.";
+}
+
+cook();
