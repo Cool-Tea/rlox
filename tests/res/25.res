@@ -1,1 +1,0 @@
-RuntimeError: Can only call functions and classes.

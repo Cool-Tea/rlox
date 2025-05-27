@@ -1,1 +1,0 @@
-Error: Can't use 'super' in a class with no superclass.

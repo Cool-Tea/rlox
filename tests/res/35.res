@@ -1,1 +1,0 @@
-RuntimeError: Operands must be two numbers or two strings.
