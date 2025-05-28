@@ -1,0 +1,17 @@
+class A {
+    init() {
+        print "A";
+    }
+}
+
+fun outer() {
+    var Super = A;
+    class Subclass < Super {
+        init() {
+            print "B";
+        }
+    } // Super是局部变量
+    return Subclass;
+}
+
+var sub = outer()();
