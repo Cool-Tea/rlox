@@ -1,0 +1,6 @@
+fun foo() {
+  while (true) { return 42; } 
+  print "unreachable";
+}
+
+print foo();

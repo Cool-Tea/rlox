@@ -1,0 +1,8 @@
+var a;
+var b;
+var c;
+a = b = c = 42;
+
+print a;
+print b;
+print c;
