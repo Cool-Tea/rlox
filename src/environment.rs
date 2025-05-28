@@ -24,7 +24,7 @@ impl Environment {
     }
 
     pub fn define(&mut self, name: String, value: Value) -> Result<(), Error> {
-        if self.values.contains_key(&name) {
+        if self.enclosing.is_some() && self.values.contains_key(&name) {
             return report(Error::Semantic(crate::error::SemError::RepeatDefine));
         }
         self.values.insert(name, Rc::new(RefCell::new(value)));
